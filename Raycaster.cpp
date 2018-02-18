@@ -95,13 +95,13 @@ Gdiplus::Graphics Buffer(&BufferBMP);
 LockBits BufferLB(BufferBMP);
 
 // define brush and font for displayed text
-Gdiplus::SolidBrush *HUDBrush = new Gdiplus::SolidBrush(Gdiplus::Color(128, 255, 165, 0));
-Gdiplus::Font *HUDFont = new Gdiplus::Font(L"Arial", 9);
+Gdiplus::SolidBrush HUDBrush(Gdiplus::Color(128, 255, 165, 0));
+Gdiplus::Font HUDFont(L"Arial", 9);
 
 // define brush for Minimap
-Gdiplus::SolidBrush *MinimapWallBrush = new Gdiplus::SolidBrush(Gdiplus::Color(128, 255, 165, 0));
-Gdiplus::SolidBrush *MinimapPlayerBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, 0, 255, 0));
-Gdiplus::SolidBrush *MinimapEnemyBrush = new Gdiplus::SolidBrush(Gdiplus::Color(255, 255, 0, 0));
+Gdiplus::SolidBrush MinimapWallBrush(Gdiplus::Color(128, 255, 165, 0));
+Gdiplus::SolidBrush MinimapPlayerBrush(Gdiplus::Color(255, 0, 255, 0));
+Gdiplus::SolidBrush MinimapEnemyBrush(Gdiplus::Color(255, 255, 0, 0));
 
 // Load crosshair bitmap
 Gdiplus::Bitmap CrosshairIMG(CrosshairFileName.c_str(), PixelFormat32bppPARGB);
@@ -298,13 +298,6 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	// Close window, end GDI+ and exit program
 	EndPaint(hWnd, &ps);
 	CloseWindow(hWnd);
-
-	// clear objects
-	delete HUDBrush;
-	delete HUDFont;
-	delete MinimapPlayerBrush;
-	delete MinimapEnemyBrush;
-	delete MinimapWallBrush;
 
 	Gdiplus::GdiplusShutdown(gdiplusToken);
 	exit(0);
@@ -583,8 +576,6 @@ void CastGraphics(char RenderPart)
 						// Draw ceiling
 						BufferLB.SetShadedPixel(x, (WindowHeight - y), Texture[CeilingTexture][static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd][static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd], 64 - ((WindowHeight - y) >> 2));
 					}
-
-					break;
 				}
 			}
 		}
@@ -675,7 +666,18 @@ void RenderEntities()
 		{ 
 			TextureIndex = 7; 
 		}
-		
+
+		// Add rotation factor to Textureindex dependent on heading direction of entity
+		if ((TextureIndex + Entity[Entity[EntityOrder[i]].Number].RotationFactor) < 8)
+		{
+			TextureIndex += Entity[Entity[EntityOrder[i]].Number].RotationFactor;
+		}
+		else
+		{
+			TextureIndex = (TextureIndex + Entity[Entity[EntityOrder[i]].Number].RotationFactor) - 8;
+		}
+			
+		// Set shadefactor
 		uint_fast32_t ShadeFactorEntity = static_cast<uint_fast32_t>(72 - (TransY * 14));
 
 		for (int_fast32_t x = LineStartX; x < LineEndX; ++x)
@@ -726,30 +728,30 @@ void DisplayHUD()
 	std::wstring TempStringWide;
 
 	// Display options
-	Buffer.DrawString(HUDOptionLabel.c_str(), -1, HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY), HUDBrush);
+	Buffer.DrawString(HUDOptionLabel.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY), &HUDBrush);
 	
 	TempString = std::string("Press ") + HUDKey + std::string(" ") + HUDHelpText;
 	TempStringWide = std::wstring(TempString.begin(), TempString.end());
 
-	Buffer.DrawString(TempStringWide.c_str(), -1, HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)), HUDBrush);
+	Buffer.DrawString(TempStringWide.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)), &HUDBrush);
 	
 	TempString = std::string("Press ") + MiniMapKey + std::string(" ") + HUDToggleMinimapText;
 	TempStringWide = std::wstring(TempString.begin(), TempString.end());
 
-	Buffer.DrawString(TempStringWide.c_str(), -1, HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)), HUDBrush);
+	Buffer.DrawString(TempStringWide.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)), &HUDBrush);
 	
-	Buffer.DrawString(HUDMouseSensitivityText.c_str(), -1, HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)), HUDBrush);
-	Buffer.DrawString(HUDExitText.c_str(), -1, HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)),HUDBrush);
+	Buffer.DrawString(HUDMouseSensitivityText.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)), &HUDBrush);
+	Buffer.DrawString(HUDExitText.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)),&HUDBrush);
 
 	DiffYPos = 0;
 
 	// Display FPS counter
 	std::wstring FPSText = L"fps : " + FPSPrint;
-	Buffer.DrawString(FPSText.c_str(), -1, HUDFont, Gdiplus::PointF(10, HUDMenuPosY), HUDBrush);
+	Buffer.DrawString(FPSText.c_str(), -1, &HUDFont, Gdiplus::PointF(10, HUDMenuPosY), &HUDBrush);
 
 	// Display mouse sensitivity
 	std::wstring MouseSensitivityText = L"mouse sensitivity : " + MouseSensitivityPrint;
-	Buffer.DrawString(MouseSensitivityText.c_str(), -1, HUDFont, Gdiplus::PointF(10, HUDMenuPosY + (DiffYPos += 15)), HUDBrush);
+	Buffer.DrawString(MouseSensitivityText.c_str(), -1, &HUDFont, Gdiplus::PointF(10, HUDMenuPosY + (DiffYPos += 15)), &HUDBrush);
 }
 
 void DisplayMinimap()
@@ -765,19 +767,19 @@ void DisplayMinimap()
 			// Draw player symbol
 			if (EntityMap[j][i] == EntityMapPlayerPos)
 			{
-				Buffer.FillRectangle(MinimapPlayerBrush, x + 1, y + 1, MinimapTileSize - 2, MinimapTileSize - 2);
+				Buffer.FillRectangle(&MinimapPlayerBrush, x + 1, y + 1, MinimapTileSize - 2, MinimapTileSize - 2);
 			}
 								
 			// Draw walls
 			if (LevelMap[j][i])
 			{
-				Buffer.FillRectangle(MinimapWallBrush, x, y, MinimapTileSize, MinimapTileSize);
+				Buffer.FillRectangle(&MinimapWallBrush, x, y, MinimapTileSize, MinimapTileSize);
 			}
 			
 			// Draw entity symbols
 			if (EntityMap[j][i] == EntityMapEnemyPos)
 			{
-				Buffer.FillRectangle(MinimapEnemyBrush, x + 1, y + 1, MinimapTileSize - 2, MinimapTileSize - 2);
+				Buffer.FillRectangle(&MinimapEnemyBrush, x + 1, y + 1, MinimapTileSize - 2, MinimapTileSize - 2);
 			}
 						
 			y += MinimapTileSize;

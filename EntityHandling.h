@@ -105,33 +105,35 @@ void InitEntityConfig(uint_fast32_t LevelNumber)
 		// read data from ini file
 		GetPrivateProfileString("ENTITY", "Name", "Dummy", TempVal, 100, IniFile.c_str());
 		Entity[i].Name = TempVal;
+
+		GetPrivateProfileString("MOVEMENT", "MoveSpeed", "0.02", TempVal, 100, IniFile.c_str());
+		Entity[i].MoveSpeed = static_cast<float>(atof(TempVal));
+
+		Entity[i].MovementBehaviour = GetPrivateProfileInt("MOVEMENT", "MovementBehaviour", 1, IniFile.c_str());
 		
-		GetPrivateProfileString("ENTITY", "StartPosX", "1.5", TempVal, 100, IniFile.c_str());
+		GetPrivateProfileString("POSITION", "StartPosX", "1.5", TempVal, 100, IniFile.c_str());
 		Entity[i].StartPosX = static_cast<float>(atof(TempVal));
 		
-		GetPrivateProfileString("ENTITY", "StartPosY", "1.5", TempVal, 100, IniFile.c_str());
+		GetPrivateProfileString("POSITION", "StartPosY", "1.5", TempVal, 100, IniFile.c_str());
 		Entity[i].StartPosY = static_cast<float>(atof(TempVal));
 		
-		GetPrivateProfileString("ENTITY", "EndPosX", "0.0", TempVal, 100, IniFile.c_str());
+		GetPrivateProfileString("POSITION", "EndPosX", "0.0", TempVal, 100, IniFile.c_str());
 		Entity[i].EndPosX = static_cast<float>(atof(TempVal));
 		
-		GetPrivateProfileString("ENTITY", "EndPosY", "0.0", TempVal, 100, IniFile.c_str());
+		GetPrivateProfileString("POSITION", "EndPosY", "0.0", TempVal, 100, IniFile.c_str());
 		Entity[i].EndPosY = static_cast<float>(atof(TempVal));
-		
-		GetPrivateProfileString("ENTITY", "MoveSpeed", "0.02", TempVal, 100, IniFile.c_str());
-		Entity[i].MoveSpeed = static_cast<float>(atof(TempVal));
-		
-		GetPrivateProfileString("ENTITY", "MoveSpeed", "0.02", TempVal, 100, IniFile.c_str());
-		Entity[i].MoveSpeed = static_cast<float>(atof(TempVal));
-		
-		Entity[i].MovementBehaviour = GetPrivateProfileInt("ENTITY", "MovementBehaviour", 1, IniFile.c_str());
-		
-		GetPrivateProfileString("ENTITY", "DirX", "-1.0", TempVal, 100, IniFile.c_str());
+				
+		GetPrivateProfileString("DIRECTION", "DirX", "-1.0", TempVal, 100, IniFile.c_str());
 		Entity[i].DirX = static_cast<float>(atof(TempVal));
 		
-		GetPrivateProfileString("ENTITY", "DirY", "0.0", TempVal, 100, IniFile.c_str());
+		GetPrivateProfileString("DIRECTION", "DirY", "0.0", TempVal, 100, IniFile.c_str());
 		Entity[i].DirY = static_cast<float>(atof(TempVal));
 
+		GetPrivateProfileString("DIRECTION", "Direction", "N", TempVal, 100, IniFile.c_str());
+		Entity[i].Direction = TempVal[0];
+
+		Entity[i].RotationFactor = GetPrivateProfileInt("DIRECTION", "RotationFactor", 0, IniFile.c_str());
+		
 		// Set initial position of entity
 		Entity[i].PosX = Entity[i].StartPosX;
 		Entity[i].PosY = Entity[i].StartPosY;
@@ -202,45 +204,53 @@ void InitEntityTextures(uint_fast32_t LevelNumber)
 void ChangeEntityDirection(char NewDirection, uint_fast32_t i)
 {
 	// Possible directions (DirX / DirY)
-	//		-1.0 / 0.0		Up
-	//		1.0 / 0.0		Down
-	//		0.0 / 1.0		Right
-	//		0.0 / -1.0		Left
+	//		-1.0 / 0.0		North
+	//		1.0 / 0.0		South
+	//		0.0 / 1.0		East
+	//		0.0 / -1.0		West
 
 	switch (NewDirection)
 	{
 		case 'l':
 		{
-			// Turn left if moved up previously
+			// Turn left (-> West) if moved North previously
 			if (Entity[i].DirX == -1.0f)
 			{
-				Entity[i].DirX = 0.0;;
+				Entity[i].DirX = 0.0;
 				Entity[i].DirY = -1.0f;
-				return;
+				Entity[i].Direction = 'W';
+				Entity[i].RotationFactor = 6;
+				break;
 			}
 
-			// Turn left if moved down previously
+			// Turn left (-> East) if moved South previously
 			if (Entity[i].DirX == 1.0f)
 			{
-				Entity[i].DirX = 0.0;;
+				Entity[i].DirX = 0.0;
 				Entity[i].DirY = 1.0f;
-				return;
+				Entity[i].Direction = 'E';
+				Entity[i].RotationFactor = 2;
+				break;
 			}
 
-			// Turn left if moved right previously
+			// Turn left (-> North) if moved East previously
 			if (Entity[i].DirY == 1.0f)
 			{
-				Entity[i].DirX = -1.0;;
+				Entity[i].DirX = -1.0;
 				Entity[i].DirY = 0.0f;
-				return;
+				Entity[i].Direction = 'N';
+				Entity[i].RotationFactor = 0;
+				break;
 			}
 
-			// Turn left if moved left previously
+			// Turn left (-> South) if moved West previously
 			if (Entity[i].DirY == -1.0f)
 			{
-				Entity[i].DirX = 1.0;;
+				Entity[i].DirX = 1.0;
 				Entity[i].DirY = 0.0f;
-				return;
+				Entity[i].Direction = 'S';
+				Entity[i].RotationFactor = 4;
+				break;
 			}
 
 			break;
@@ -248,39 +258,45 @@ void ChangeEntityDirection(char NewDirection, uint_fast32_t i)
 
 		case 'r':
 		{
-			// Turn right if moved up previously
+			// Turn right (-> East) if moved North previously
 			if (Entity[i].DirX == -1.0f)
 			{
-				Entity[i].DirX = 0.0;;
+				Entity[i].DirX = 0.0;
 				Entity[i].DirY = 1.0f;
-				return;
+				Entity[i].Direction = 'E';
+				Entity[i].RotationFactor = 2;
+				break;
 			}
 
-			// Turn right if moved down previously
+			// Turn right (-> West) if moved South previously
 			if (Entity[i].DirX == 1.0f)
 			{
-				Entity[i].DirX = 0.0;;
+				Entity[i].DirX = 0.0;
 				Entity[i].DirY = -1.0f;
-				return;
+				Entity[i].Direction = 'W';
+				Entity[i].RotationFactor = 6;
+				break;
 			}
 
-			// Turn right if moved right previously
+			// Turn right (-> South) if moved East previously
 			if (Entity[i].DirY == 1.0f)
 			{
-				Entity[i].DirX = 1.0;;
+				Entity[i].DirX = 1.0;
 				Entity[i].DirY = 0.0f;
-				return;
+				Entity[i].Direction = 'S';
+				Entity[i].RotationFactor = 4;
+				break;
 			}
 
-			// Turn right if moved left previously
+			// Turn right (-> North) if moved West previously
 			if (Entity[i].DirY == -1.0f)
 			{
-				Entity[i].DirX = -1.0;;
+				Entity[i].DirX = -1.0;
 				Entity[i].DirY = 0.0f;
-				return;
+				Entity[i].Direction = 'N';
+				Entity[i].RotationFactor = 0;
+				break;
 			}
-
-			break;
 		}
 	}
 }
@@ -302,13 +318,6 @@ void MoveEntities()
 				// Clear old entry on EntityMap
 				EntityMap[static_cast<uint_fast32_t>(Entity[i].PosX)][static_cast<uint_fast32_t>(Entity[i].PosY)] = EntityMapClearField;
 
-				// Change direction by chance
-				if (static_cast<uint_fast32_t>(rand() % 500) == 11)
-				{
-					// Random choice of new direction (left or right)
-					// ChangeEntityDirection("lr"[rand() % 2], i);
-				}
-				
 				// Wait by chance
 				// Check if a chance hit occured and if no current timer is running
 				if (static_cast<uint_fast32_t>(rand() % 666) == 99 && Entity[i].WaitTimer == 0)

@@ -130,3 +130,6 @@ x64/Release/Raycaster.tlog/Raycaster.write.1u.tlog
 x64/Release/SFX/BackgroundMusic/AtmoLoop.mp3
 x64/Release/SFX/PlayerSounds/PlayerFootSteps.wav
 x64/Release/SFX/WeaponSounds/AK12/AK12_SingleShot.wav
+.vs/Raycaster/v15/ipch/AutoPCH/42e74455484c5686/EXE_COMMON.ipch
+.vs/Raycaster/v15/ipch/AutoPCH/63099443408ce3f3/EXE_COMMON.ipch
+.vs/Raycaster/v15/ipch/AutoPCH/944ec78e22c6e53f/EXE_COMMON.ipch

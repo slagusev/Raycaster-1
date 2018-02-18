@@ -28,10 +28,11 @@ struct EntityStruct
 	float DirY;
 	float PosX;
 	float PosY;
+	char Direction;
+	char RotationFactor;
 	uint_fast32_t WaitTimer;
 	std::vector<std::vector<std::vector<uint_fast32_t>>> Texture;
 };
-
 
 //
 // Structure for weapons
