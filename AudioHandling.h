@@ -8,11 +8,6 @@
 **************************************************************
 */
 
-#include <windows.h>
-
-#pragma once
-#pragma comment(lib, "Winmm.lib")
-
 //
 // Declare functions
 //
@@ -28,8 +23,6 @@ void PlayLevelBackgroundMusic();
 
 void InitLevelBackgroundMusic(uint_fast32_t LevelNumber)
 {
-	char TempVal[100];
-
 	// Build filepath/filename dynamically with LevelNumber
 	std::string PathPart1 = "./DATA/LevelData/Level_";
 	std::string PathPart2 = std::to_string(LevelNumber);
@@ -40,6 +33,8 @@ void InitLevelBackgroundMusic(uint_fast32_t LevelNumber)
 	std::string IniFile = PathPart1 + PathPart2 + PathPart3 + PathPart4 + PathPart5;
 
 	// read data from ini file
+	char TempVal[100];
+
 	GetPrivateProfileString("AUDIO", "BackgroundMusic", "SFX\\BackgroundMusic\\AtmoLoop.mp3", TempVal, 100, IniFile.c_str());
 
 	// build MCI command string
@@ -50,8 +45,6 @@ void InitLevelBackgroundMusic(uint_fast32_t LevelNumber)
 
 void InitPlayerAudio(uint_fast32_t LevelNumber)
 {
-	char TempVal[100];
-
 	// Build filepath/filename dynamically with LevelNumber
 	std::string PathPart1 = "./DATA/PlayerData/Level_";
 	std::string PathPart2 = std::to_string(LevelNumber);
@@ -62,6 +55,8 @@ void InitPlayerAudio(uint_fast32_t LevelNumber)
 	std::string IniFile = PathPart1 + PathPart2 + PathPart3 + PathPart4 + PathPart5;
 
 	// read data from ini file
+	char TempVal[100];
+
 	GetPrivateProfileString("AUDIO", "PlayerFootSteps", "SFX\\PlayerSounds\\PlayerFootSteps.wav", TempVal, 100, IniFile.c_str());
 	
 	// build MCI command string
@@ -74,8 +69,6 @@ void InitWeaponAudio(uint_fast32_t LevelNumber)
 {
 	for (uint_fast32_t i = 0; i < NumberOfUsedWeapons; ++i)
 	{
-		char TempVal[100];
-
 		// Build filepath/filename dynamically with LevelNumber and Weapon.Number
 		std::string PathPart1 = "./DATA/WeaponData/Level_";
 		std::string PathPart2 = std::to_string(LevelNumber);
@@ -88,6 +81,8 @@ void InitWeaponAudio(uint_fast32_t LevelNumber)
 		std::string IniFile = PathPart1 + PathPart2 + PathPart3 + PathPart4 + PathPart5 + PathPart6 + PathPart7;
 
 		// read data from ini file
+		char TempVal[100];
+
 		GetPrivateProfileString("AUDIO", "SingleShotAudio", "SFX\\WeaponSounds\\AK12\\AK12_SingleShot.wav", TempVal, 100, IniFile.c_str());
 		
 		// build MCI command string

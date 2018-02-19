@@ -8,8 +8,6 @@
 ************************************
 */
 
-#pragma once
-
 class LockBits
 {
 public:

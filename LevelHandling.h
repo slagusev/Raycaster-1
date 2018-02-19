@@ -8,8 +8,6 @@
 ***********************************
 */
 
-#pragma once
-
 //
 // Declare functions
 //
@@ -62,10 +60,6 @@ void InitLevelConfig(uint_fast32_t LevelNumber)
 
 void InitLevelMapData(uint_fast32_t LevelNumber)
 {
-	std::string TempString;
-	uint_fast32_t TempInt;
-	char Delimiter;
-	
 	// Build filepath/filename dynamically with LevelNumber
 	std::string PathPart1 = "./DATA/LevelData/Level_";
 	std::string PathPart2 = std::to_string(LevelNumber);
@@ -81,6 +75,10 @@ void InitLevelMapData(uint_fast32_t LevelNumber)
 
 	if (LevelMapDataFile.good())
 	{
+		std::string TempString;
+		uint_fast32_t TempInt;
+		char Delimiter;
+
 		while (std::getline(LevelMapDataFile, TempString))
 		{
 			std::istringstream Stream(TempString);
@@ -105,9 +103,6 @@ void InitLevelMapData(uint_fast32_t LevelNumber)
 
 void InitLevelTextures(uint_fast32_t LevelNumber)
 {
-	std::string TempString;
-	uint_fast32_t i = 0;
-
 	// Build filepath/filename dynamically with LevelNumber
 	std::string PathPart1 = "./DATA/LevelData/Level_";
 	std::string PathPart2 = std::to_string(LevelNumber);
@@ -126,6 +121,9 @@ void InitLevelTextures(uint_fast32_t LevelNumber)
 	
 	if (LevelTexturesDataFile.good())
 	{
+		std::string TempString;
+		uint_fast32_t i = 0;
+
 		while (std::getline(LevelTexturesDataFile, TempString))
 		{
 			// Load & lock texture

@@ -8,8 +8,6 @@
 *****************************************
 */
 
-#pragma once
-
 #ifndef HID_USAGE_PAGE_GENERIC
 #define HID_USAGE_PAGE_GENERIC         ((USHORT) 0x01)
 #endif
@@ -38,7 +36,6 @@ RAWINPUTDEVICE RawInputDevice[1];
 RAWINPUT* RawDev = (RAWINPUT*)lpb;
 RECT WindowRect;
 
-float MouseSensitivity = 1.0f;
 std::wstring MouseSensitivityPrint ;
 
 // POINT structs for storing mouse coordinates

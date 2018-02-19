@@ -8,8 +8,6 @@
 ************************************
 */
 
-#pragma once
-
 //
 // Declare functions
 //
@@ -69,11 +67,21 @@ InitGameConfig::InitGameConfig()
 	
 	MinimapTileSize = GetPrivateProfileInt("MINIMAP", "MinimapTileSize", 8, IniFile);
 
-	WindowWidth = GetPrivateProfileInt("WINDOW", "WindowWidth", 1024, IniFile);
+	GetPrivateProfileString("WINDOW", "Name", "Raycaster", TempVal, 100, IniFile);
+	Window.Name = TempVal;
+
+	Window.PosX = GetPrivateProfileInt("WINDOW", "PosX", 10, IniFile);
+
+	Window.PosY = GetPrivateProfileInt("WINDOW", "PosY", 10, IniFile);
+
+	Window.ViewPortWidth = GetPrivateProfileInt("WINDOW", "ViewPortWidth", 1024, IniFile);
 	
-	WindowHeight = GetPrivateProfileInt("WINDOW", "WindowHeight", 768, IniFile);
+	Window.ViewPortHeight = GetPrivateProfileInt("WINDOW", "ViewPortHeight", 768, IniFile);
 
 	TextureSize = GetPrivateProfileInt("TEXTURES", "TextureSize ", 1024, IniFile);
+
+	GetPrivateProfileString("MOUSE", "MouseSensitivity ", "1.0", TempVal, 100, IniFile);
+	MouseSensitivity = static_cast<float>(atof(TempVal));
 
 	GetPrivateProfileString("KEYBOARD", "MoveForwardKey", "W", TempVal, 100, IniFile);
 	MoveForwardKey = TempVal[0];
@@ -108,12 +116,12 @@ InitGameConfig::InitGameConfig()
 	//
 
 	// Define middle of window
-	WindowWidthMid = WindowWidth / 2;
-	WindowHeightMid = WindowHeight / 2;
+	Window.WidthMid = Window.ViewPortWidth / 2;
+	Window.HeightMid = Window.ViewPortHeight / 2;
 
 	// Size of window (WindowWidth/Height + controls)
-	MainWindowWidth = WindowWidth + 16;
-	MainWindowHeight = WindowHeight + 39;
+	Window.OverallWidth = Window.ViewPortWidth + 16;
+	Window.OverallHeight = Window.ViewPortHeight + 39;
 
 	// Factor for bitwise texture operations
 	TextureSizeBitwiseAnd = TextureSize - 1;
@@ -122,10 +130,22 @@ InitGameConfig::InitGameConfig()
 	// 7 for 128x128, 8 for 256x256, 9 for 512x512, 10 for 1024x1024
 	switch (TextureSize)
 	{
-		case 128: TextureSizeShiftFactor = 7;
-		case 256: TextureSizeShiftFactor = 8;
-		case 512: TextureSizeShiftFactor = 9;
-		case 1024: TextureSizeShiftFactor = 10;
+		case 128: 
+		{
+			TextureSizeShiftFactor = 7;
+		}
+		case 256: 
+		{
+			TextureSizeShiftFactor = 8;
+		}
+		case 512:
+		{
+			TextureSizeShiftFactor = 9;
+		}
+		case 1024:
+		{
+			TextureSizeShiftFactor = 10;
+		}
 	}
 	
 	// Initial settings for player movement speed

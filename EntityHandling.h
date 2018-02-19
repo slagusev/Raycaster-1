@@ -8,8 +8,6 @@
 ************************************
 */
 
-#pragma once
-
 //
 // Declare functions
 //
@@ -56,8 +54,6 @@ uint_fast32_t NumberOfUsedEntityTextures;
 
 void InitEntityConfig(uint_fast32_t LevelNumber)
 {
-	char TempVal[100];
-	
 	// Build filepath/filename dynamically with LevelNumber
 	std::string PathPart1 = "./DATA/EntityData/Level_";
 	std::string PathPart2 = std::to_string(LevelNumber);
@@ -67,6 +63,8 @@ void InitEntityConfig(uint_fast32_t LevelNumber)
 
 	std::string IniFile = PathPart1 + PathPart2 + PathPart3 + PathPart4 + PathPart5;
 	
+	char TempVal[100];
+
 	NumberOfUsedEntities = GetPrivateProfileInt("GENERAL", "NumberOfUsedEntities", 3, IniFile.c_str());
 	
 	NumberOfUsedEntityTextures = GetPrivateProfileInt("GENERAL", "NumberOfUsedEntityTextures", 8, IniFile.c_str());
@@ -81,7 +79,7 @@ void InitEntityConfig(uint_fast32_t LevelNumber)
 	EntityMoveV = static_cast<float>(atof(TempVal));
 
 	// Resize vectors to needed sizes
-	ZBuffer.resize(WindowWidth);
+	ZBuffer.resize(Window.ViewPortWidth);
 	EntityOrder.resize(NumberOfUsedEntities);
 	EntityDistance.resize(NumberOfUsedEntities);
 	EntityMap = std::vector<std::vector<uint_fast32_t>>(MapWidth, std::vector<uint_fast32_t>(MapHeight, 0));
@@ -144,9 +142,6 @@ void InitEntityTextures(uint_fast32_t LevelNumber)
 {	
 	for (uint_fast32_t i = 0; i < NumberOfUsedEntities; ++i)
 	{
-		std::string TempString;
-		uint_fast32_t j = 0;
-
 		// Build filepath/filename dynamically with LevelNumber and Entity.Number
 		std::string PathPart1 = "./DATA/EntityData/Level_";
 		std::string PathPart2 = std::to_string(LevelNumber);
@@ -167,6 +162,9 @@ void InitEntityTextures(uint_fast32_t LevelNumber)
 		
 		if (EntityTexturesDataFile.good())
 		{
+			uint_fast32_t j = 0;
+			std::string TempString;
+
 			while (std::getline(EntityTexturesDataFile, TempString))
 			{
 				// Load & lock texture
@@ -369,6 +367,7 @@ void SortEntities()
 	{
 		float Min = EntityDistance[i];
 		uint_fast32_t Index = i;
+
 		for (uint_fast32_t j = i + 1; j < NumberOfUsedEntities; ++j)
 		{
 			if (Min < EntityDistance[j])

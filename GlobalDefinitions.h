@@ -8,19 +8,8 @@
 *********************************************
 */
 
-#pragma once
-
-// Size of viewport
-int_fast32_t WindowWidth;
-int_fast32_t WindowHeight;
-
-// Define middle of window
-uint_fast32_t WindowWidthMid;
-uint_fast32_t WindowHeightMid;
-
-// Size of window (WindowWidth/Height + controls and border)
-uint_fast32_t MainWindowWidth;
-uint_fast32_t MainWindowHeight;
+// Init main window structure
+MainWindow Window;
 
 // Setting planes/viewport for raycaster
 float RayPosX;
@@ -80,6 +69,9 @@ float PlayerCollisionDetectionFactor;
 std::wstring CrosshairFileName;
 uint_fast32_t CrosshairPosX;
 uint_fast32_t CrosshairPosY;
+
+// Mouse settings
+float MouseSensitivity;
 
 // Control key definitions
 char MoveForwardKey;

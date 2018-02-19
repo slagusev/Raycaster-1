@@ -8,8 +8,6 @@
 ************************************
 */
 
-#pragma once
-
 //
 // Declare functions
 //
@@ -44,8 +42,6 @@ uint_fast32_t MuzzleFlashCounter;
 
 void InitWeaponConfig(uint_fast32_t LevelNumber)
 {
-	char TempVal[100];
-
 	// Build filepath/filename dynamically with LevelNumber
 	std::string PathPart1 = "./DATA/WeaponData/Level_";
 	std::string PathPart2 = std::to_string(LevelNumber);
@@ -56,6 +52,8 @@ void InitWeaponConfig(uint_fast32_t LevelNumber)
 	std::string IniFile = PathPart1 + PathPart2 + PathPart3 + PathPart4 + PathPart5;
 
 	// read data from ini file
+	char TempVal[100];
+
 	NumberOfUsedWeapons = GetPrivateProfileInt("GENERAL", "NumberOfUsedWeapons", 1, IniFile.c_str());
 	
 	NumberOfUsedWeaponTextures = GetPrivateProfileInt("GENERAL", "NumberOfUsedWeaponTextures", 1, IniFile.c_str());
@@ -104,8 +102,8 @@ void InitWeaponConfig(uint_fast32_t LevelNumber)
 		
 		Weapon[i].MuzzleFlashPosY = GetPrivateProfileInt("MUZZLEFLASH", "MuzzleFlashPosY", 20, IniFile.c_str());
 
-		Weapon[i].PosX = WindowWidth - Weapon[i].PosX;
-		Weapon[i].PosY = WindowHeight - Weapon[i].PosY;
+		Weapon[i].PosX = Window.ViewPortWidth - Weapon[i].PosX;
+		Weapon[i].PosY = Window.ViewPortHeight - Weapon[i].PosY;
 	}
 }
 
@@ -113,9 +111,6 @@ void InitWeaponTextures(uint_fast32_t LevelNumber)
 {
 	for (uint_fast32_t i = 0; i < NumberOfUsedWeapons; ++i)
 	{
-		std::string TempString;
-		uint_fast32_t j = 0;
-
 		// Build filepath/filename dynamically with LevelNumber and Weapon.Number
 		std::string PathPart1 = "./DATA/WeaponData/Level_";
 		std::string PathPart2 = std::to_string(LevelNumber);
@@ -136,6 +131,9 @@ void InitWeaponTextures(uint_fast32_t LevelNumber)
 
 		if (WeaponTexturesDataFile.good())
 		{
+			std::string TempString;
+			uint_fast32_t j = 0;
+
 			while (std::getline(WeaponTexturesDataFile, TempString))
 			{
 				// Load & lock texture
@@ -174,8 +172,6 @@ void InitWeaponMuzzleFlashTextures(uint_fast32_t LevelNumber)
 {
 	for (uint_fast32_t i = 0; i < NumberOfUsedWeapons; ++i)
 	{
-		std::string TempString;
-
 		// Build filepath/filename dynamically with LevelNumber and Weapon.Number
 		std::string PathPart1 = "./DATA/WeaponData/Level_";
 		std::string PathPart2 = std::to_string(LevelNumber);
@@ -193,6 +189,8 @@ void InitWeaponMuzzleFlashTextures(uint_fast32_t LevelNumber)
 
 		if (WeaponMuzzleFlashTextureDataFile.good())
 		{
+			std::string TempString;
+
 			while (std::getline(WeaponMuzzleFlashTextureDataFile, TempString))
 			{
 				// Load & lock texture

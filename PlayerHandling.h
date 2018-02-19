@@ -8,8 +8,6 @@
 ************************************
 */
 
-#pragma once
-
 //
 // Declare functions
 //
@@ -37,8 +35,6 @@ uint_fast32_t SelectedPlayerWeapon;
 
 void InitPlayerConfig(uint_fast32_t LevelNumber)
 {
-	char TempVal[100];
-	
 	// Build filepath/filename dynamically with LevelNumber
 	std::string PathPart1 = "./DATA/PlayerData/Level_";
 	std::string PathPart2 = std::to_string(LevelNumber);
@@ -49,6 +45,8 @@ void InitPlayerConfig(uint_fast32_t LevelNumber)
 	std::string IniFile = PathPart1 + PathPart2 + PathPart3 + PathPart4 + PathPart5;
 
 	// read data from ini file
+	char TempVal[100];
+
 	GetPrivateProfileString("POSITION", "PlayerPosX", "14.5", TempVal, 100, IniFile.c_str());
 	PlayerPosX = static_cast<float>(atof(TempVal));
 	

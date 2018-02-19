@@ -21,18 +21,12 @@
 #include <boost/thread.hpp>
 #include <cmath>
 #include <vector>
-#include <wchar.h>
 #include <fstream>
 #include <sstream>
 #include <gdiplus.h>
 
 #pragma comment(lib, "gdiplus.lib")
-
-// GlobalDefinitions.h contains all globally used variables and constants
-#include "GlobalDefinitions.h"
-
-// GameConfig.h contains functions for general configuration of the engine
-#include "GameConfig.h"
+#pragma comment(lib, "Winmm.lib")
 
 // LockBits.h provides fast pixel get/set operations
 #include "LockBits.h"
@@ -40,11 +34,17 @@
 // DataStructures.h contains all data structures used for entities, weapons etc.
 #include "DataStructures.h"
 
-// LevelHandling.h provides various functions for Level handling
-#include "LevelHandling.h"
+// GlobalDefinitions.h contains all globally used variables and constants
+#include "GlobalDefinitions.h"
+
+// GameConfig.h contains functions for general configuration of the engine
+#include "GameConfig.h"
 
 // InputHandling.h provides various functions for mouse handling etc.
 #include "InputHandling.h"
+
+// LevelHandling.h provides various functions for Level handling
+#include "LevelHandling.h"
 
 // PlayerHandling.h provides various functions for entity handling
 #include "PlayerHandling.h"
@@ -90,7 +90,7 @@ namespace
 }
 
 // create bitmap and device for double buffer
-Gdiplus::Bitmap BufferBMP(WindowWidth, WindowHeight, PixelFormat32bppPARGB);
+Gdiplus::Bitmap BufferBMP(Window.ViewPortWidth, Window.ViewPortHeight, PixelFormat32bppPARGB);
 Gdiplus::Graphics Buffer(&BufferBMP);
 LockBits BufferLB(BufferBMP);
 
@@ -125,13 +125,13 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	wc.hIcon			= LoadIcon(NULL, IDI_APPLICATION);
 	wc.hInstance		= hInstance;
 	wc.lpfnWndProc		= WndProc;
-	wc.lpszClassName	= TEXT("Raycaster");
+	wc.lpszClassName	= TEXT(Window.Name.c_str());
 	wc.lpszMenuName		= 0;
 	wc.style			= CS_HREDRAW | CS_VREDRAW;
 
 	RegisterClass(&wc);
 		
-	hWnd = CreateWindow(TEXT("Raycaster"), TEXT("Raycaster"), WS_OVERLAPPEDWINDOW, 10, 10, MainWindowWidth, MainWindowHeight, NULL, NULL, hInstance, NULL);
+	hWnd = CreateWindow(TEXT(Window.Name.c_str()), TEXT(Window.Name.c_str()), WS_OVERLAPPEDWINDOW, Window.PosX, Window.PosY, Window.OverallWidth, Window.OverallHeight, NULL, NULL, hInstance, NULL);
 
 	// Init of level
 	InitLevelConfig(SelectedLevel);
@@ -157,8 +157,8 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	InitWeaponAudio(SelectedLevel);
 
 	// crosshair settings
-	CrosshairPosX = WindowWidthMid - (CrosshairIMG.GetWidth() / 2);
-	CrosshairPosY = WindowHeightMid - (CrosshairIMG.GetHeight() / 2);
+	CrosshairPosX = Window.WidthMid - (CrosshairIMG.GetWidth() / 2);
+	CrosshairPosY = Window.HeightMid - (CrosshairIMG.GetHeight() / 2);
 
 	// Set initial position of player on EntityMap
 	EntityMap[static_cast<uint_fast32_t>(PlayerPosX)][static_cast<uint_fast32_t>(PlayerPosY)] = EntityMapPlayerPos;
@@ -239,10 +239,13 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 		
 		std::unique_ptr< boost::asio::io_service::work > work(new boost::asio::io_service::work(IOService));
 
-		for (size_t t = 0; t < NumberOfThreads; ++t)
+		for (auto t = 0; t < NumberOfThreads; ++t)
 		{
 			GameLoopGroup.create_thread(boost::bind(&boost::asio::io_service::run, &IOService));
 		}
+
+		// Lock LockBits buffer
+		BufferLB.Lock();
 
 		// Post graphics jobs to Threadpool
 		// Renderparts :
@@ -269,6 +272,9 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 
 		// Draw player weapon to buffer
 		DrawPlayerWeapon();
+
+		// Release LockBits buffer
+		BufferLB.Release();
 		
 		// Display HUD
 		if (HUDEnabled)
@@ -289,7 +295,7 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 		HBITMAP hBitmap;
 		BufferBMP.GetHBITMAP(Gdiplus::Color::Black, &hBitmap);
 		SelectObject(hdcMem, hBitmap);
-		BitBlt(hdc, 0, 0, WindowWidth, WindowHeight, hdcMem, 0, 0, SRCCOPY);
+		BitBlt(hdc, 0, 0, Window.ViewPortWidth, Window.ViewPortHeight, hdcMem, 0, 0, SRCCOPY);
 		DeleteObject(hBitmap);
 	}
 
@@ -298,7 +304,6 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	// Close window, end GDI+ and exit program
 	EndPaint(hWnd, &ps);
 	CloseWindow(hWnd);
-
 	Gdiplus::GdiplusShutdown(gdiplusToken);
 	exit(0);
 }
@@ -308,48 +313,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 	switch (message)
 	{
 		case WM_PAINT:
-			return 0;
+			return(0);
 
 		case WM_CREATE:
-			return 0;
+			return(0);
 
 		case WM_KEYDOWN:
 			// Enable/disable HUD
 			if (GetKeyState(HUDKey) & 0x8000)
 			{
 				HUDEnabled = !HUDEnabled;
-				return 0;
+				return(0);
 			}
 
 			// Toggle Minimap
 			if (GetKeyState(MiniMapKey) & 0x8000)
 			{
 				MinimapEnabled = !MinimapEnabled;
-				return 0;
+				return(0);
 			}
 
 			// Increase mouse sensitivity "+"
 			if ((GetKeyState(VK_OEM_PLUS) & 0x8000) || (GetKeyState(VK_ADD) & 0x8000))
 			{
 				IncreaseMouseSensitivity();
-				return 0;
+				return(0);
 			}
 
 			// Decrease mouse sensitivity "-"
 			if ((GetKeyState(VK_OEM_MINUS) & 0x8000) || (GetKeyState(VK_SUBTRACT) & 0x8000))
 			{
 				DecreaseMouseSensitivity();
-				return 0;
+				return(0);
 			}
 					
 		case WM_INPUT:
 			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
 			GetMousePosition();
-			return 0;
+			return(0);
 		
 		case WM_LBUTTONDOWN:
 			FireWeaponSingleShot();
-			return 0;
+			return(0);
 
 		case MM_MCINOTIFY:
 			switch (wParam)
@@ -357,12 +362,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 				// "rewind" footsteps audio if played completely
 				case MCI_NOTIFY_SUCCESSFUL:
 					mciSendString("seek PlayerFootSteps to start", NULL, 0, NULL);
-					return 0;
+					return(0);
 			}
 			
 		case WM_DESTROY:
 			PostQuitMessage(0);
-			return 0;
+			return(0);
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
@@ -378,52 +383,46 @@ void CastGraphics(char RenderPart)
 		case 'L':
 		{
 			Start = 0;
-			End = WindowWidthMid;
+			End = Window.WidthMid;
 			break;
 		}
 		case 'R':
 		{
-			Start = WindowWidthMid;
-			End = WindowWidth;
+			Start = Window.WidthMid;
+			End = Window.ViewPortWidth;
 			break;
 		}
 		case 'F':
 		{
 			Start = 0;
-			End = WindowWidth;
+			End = Window.ViewPortWidth;
 			break;
 		}
 		case 'C':
 		{
 			Start = 0;
-			End = WindowWidth;
+			End = Window.ViewPortWidth;
 			break;
 		}
 	}
 
 	for (int_fast32_t x = Start; x < End; ++x)
 	{
-		float SideDistX;
-		float SideDistY;
-		float WallDist;
-		float WallX;
-		float FloorWallX;
-		float FloorWallY;
-		int_fast32_t StepX;
-		int_fast32_t StepY;
-
-		float Camera = (x << 1) / static_cast<float>(WindowWidth) - 1;
+		float Camera = (x << 1) / static_cast<float>(Window.ViewPortWidth) - 1;
 		float RayDirX = PlayerDirX + PlaneX * Camera;
 		float RayDirY = PlayerDirY + PlaneY * Camera;
 
 		int_fast32_t MapPosX = static_cast<int_fast32_t>(RayPosX);
 		int_fast32_t MapPosY = static_cast<int_fast32_t>(RayPosY);
 
-		bool WallHit = false;
-		bool WallSide = false;
-
 		float deltaDistX = std::abs(1 / RayDirX);
 		float deltaDistY = std::abs(1 / RayDirY);
+
+		float SideDistX;
+		float SideDistY;
+
+		int_fast32_t StepX;
+		int_fast32_t StepY;
 
 		if (RayDirX < 0)
 		{
@@ -447,6 +446,9 @@ void CastGraphics(char RenderPart)
 			SideDistY = (MapPosY + 1 - RayPosY) * deltaDistY;
 		}
 
+		bool WallHit = false;
+		bool WallSide = false;
+
 		while (!WallHit)
 		{
 			if (SideDistX < SideDistY)
@@ -468,6 +470,8 @@ void CastGraphics(char RenderPart)
 			}
 		}
 
+		float WallDist;
+
 		if (WallSide)
 		{
 			WallDist = (MapPosY - RayPosY + (1 - StepY) / 2) / RayDirY;
@@ -477,15 +481,17 @@ void CastGraphics(char RenderPart)
 			WallDist = (MapPosX - RayPosX + (1 - StepX) / 2) / RayDirX;
 		}
 
-		int_fast32_t LineHeight = static_cast<int_fast32_t>(WindowHeight / WallDist);
+		int_fast32_t LineHeight = static_cast<int_fast32_t>(Window.ViewPortHeight / WallDist);
 
-		int_fast32_t LineStart = (-LineHeight / 2) + (WindowHeight / 2);
+		int_fast32_t LineStart = (-LineHeight / 2) + (Window.ViewPortHeight / 2);
 
 		LineStart = max(LineStart, 0);
 
-		int_fast32_t LineEnd = (LineHeight >> 1) + (WindowHeight >> 1);
+		int_fast32_t LineEnd = (LineHeight >> 1) + (Window.ViewPortHeight >> 1);
 
-		LineEnd = min(LineEnd, WindowHeight);
+		LineEnd = min(LineEnd, Window.ViewPortHeight);
+
+		float WallX;
 
 		if (WallSide)
 		{
@@ -516,9 +522,9 @@ void CastGraphics(char RenderPart)
 
 			uint_fast32_t ShadeFactorWalls = static_cast<uint_fast32_t>(72 - (WallDist * 14));
 
-			for (int_fast32_t y = LineStart; y < LineEnd; ++y)
+			for (auto y = LineStart; y < LineEnd; ++y)
 			{
-				int_fast32_t TextureY = ((((y << 8) - (WindowHeight << 7) + (LineHeight << 7)) * TextureSize) / LineHeight) >> 8;
+				int_fast32_t TextureY = ((((y << 8) - (Window.ViewPortHeight << 7) + (LineHeight << 7)) * TextureSize) / LineHeight) >> 8;
 				
 				// Draw walls
 				BufferLB.SetShadedPixel(x, y, Texture[LevelMapPos][TextureX][TextureY], ShadeFactorWalls);
@@ -527,6 +533,9 @@ void CastGraphics(char RenderPart)
 
 		if (RenderPart == 'F' || RenderPart == 'C')
 		{
+			float FloorWallX;
+			float FloorWallY;
+			
 			if (!WallSide && RayDirX > 0)
 			{
 				FloorWallX = static_cast<float>(MapPosX);
@@ -552,12 +561,12 @@ void CastGraphics(char RenderPart)
 			{
 				case 'F':
 				{
-					for (int_fast32_t y = LineEnd; y < WindowHeight; ++y)
+					for (auto y = LineEnd; y < Window.ViewPortHeight; ++y)
 					{
-						float FactorW = (WindowHeight / (2.0f * y - WindowHeight)) / WallDist;
+						float FactorW = (Window.ViewPortHeight / (2.0f * y - Window.ViewPortHeight)) / WallDist;
 
 						// Draw floor
-						BufferLB.SetShadedPixel(x, y, Texture[FloorTexture][static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd][static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd], 64 - ((WindowHeight - y) >> 2));
+						BufferLB.SetShadedPixel(x, y, Texture[FloorTexture][static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd][static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd], 64 - ((Window.ViewPortHeight - y) >> 2));
 					}
 
 					break;
@@ -569,12 +578,12 @@ void CastGraphics(char RenderPart)
 					// Needs only to be calculated once
 					ZBuffer[x] = WallDist;
 
-					for (int_fast32_t y = LineEnd; y < WindowHeight; ++y)
+					for (auto y = LineEnd; y < Window.ViewPortHeight; ++y)
 					{
-						float FactorW = (WindowHeight / (2.0f * y - WindowHeight)) / WallDist;
+						float FactorW = (Window.ViewPortHeight / (2.0f * y - Window.ViewPortHeight)) / WallDist;
 
 						// Draw ceiling
-						BufferLB.SetShadedPixel(x, (WindowHeight - y), Texture[CeilingTexture][static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd][static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd], 64 - ((WindowHeight - y) >> 2));
+						BufferLB.SetShadedPixel(x, (Window.ViewPortHeight - y), Texture[CeilingTexture][static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd][static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd], 64 - ((Window.ViewPortHeight - y) >> 2));
 					}
 				}
 			}
@@ -595,24 +604,24 @@ void RenderEntities()
 		float TransX = InverseMatrix * (PlayerDirY * EntityPosX - PlayerDirX * EntityPosY);
 		float TransY = InverseMatrix * (-PlaneY * EntityPosX + PlaneX * EntityPosY);
 
-		int_fast32_t EntitySX = static_cast<int_fast32_t>((WindowWidth >> 1) * (1 + TransX / TransY));
+		int_fast32_t EntitySX = static_cast<int_fast32_t>((Window.ViewPortWidth >> 1) * (1 + TransX / TransY));
 		int_fast32_t vScreen = static_cast<int_fast32_t>(EntityMoveV / TransY);
 
-		int_fast32_t EntityHeight = abs(static_cast<int_fast32_t>(WindowHeight / (TransY))) / EntitySizeDivV;
-		int_fast32_t LineStartY = ((-EntityHeight / 2) + (WindowHeight / 2) + vScreen);
+		int_fast32_t EntityHeight = abs(static_cast<int_fast32_t>(Window.ViewPortHeight / (TransY))) / EntitySizeDivV;
+		int_fast32_t LineStartY = ((-EntityHeight / 2) + (Window.ViewPortHeight / 2) + vScreen);
 
 		LineStartY = max(LineStartY, 0);
 
-		int_fast32_t LineEndY = (EntityHeight >> 1) + (WindowHeight >> 1) + vScreen;
+		int_fast32_t LineEndY = (EntityHeight >> 1) + (Window.ViewPortHeight >> 1) + vScreen;
 
-		LineEndY = min(LineEndY, WindowHeight);
+		LineEndY = min(LineEndY, Window.ViewPortHeight);
 
-		int_fast32_t EntityWidth = abs(static_cast<int_fast32_t>(WindowHeight / (TransY))) / EntitySizeDivU;
+		int_fast32_t EntityWidth = abs(static_cast<int_fast32_t>(Window.ViewPortHeight / (TransY))) / EntitySizeDivU;
 		int_fast32_t LineStartX = (-EntityWidth / 2) + EntitySX;
 
 		int_fast32_t LineEndX = (EntityWidth >> 1) + EntitySX;
 
-		LineEndX = min(LineEndX, WindowWidth);
+		LineEndX = min(LineEndX, Window.ViewPortWidth);
 
 		// Get angle between player and entity without atan2
 		// Returns TextureIndex (0..7) for adressing correct texture
@@ -668,27 +677,29 @@ void RenderEntities()
 		}
 
 		// Add rotation factor to Textureindex dependent on heading direction of entity
-		if ((TextureIndex + Entity[Entity[EntityOrder[i]].Number].RotationFactor) < 8)
+		unsigned char TextureIndexTemp = TextureIndex + Entity[Entity[EntityOrder[i]].Number].RotationFactor;
+
+		if (TextureIndexTemp < 8)
 		{
-			TextureIndex += Entity[Entity[EntityOrder[i]].Number].RotationFactor;
+			TextureIndex = TextureIndexTemp;
 		}
 		else
 		{
-			TextureIndex = (TextureIndex + Entity[Entity[EntityOrder[i]].Number].RotationFactor) - 8;
+			TextureIndex = TextureIndexTemp - 8;
 		}
 			
 		// Set shadefactor
 		uint_fast32_t ShadeFactorEntity = static_cast<uint_fast32_t>(72 - (TransY * 14));
 
-		for (int_fast32_t x = LineStartX; x < LineEndX; ++x)
+		for (auto x = LineStartX; x < LineEndX; ++x)
 		{
 			int_fast32_t TextureX = static_cast<int_fast32_t>(x - ((-EntityWidth >> 1) + EntitySX)) * EntitySize / EntityWidth;
 
-			if (TransY > 0 && x > 0 && x < WindowWidth && TransY < ZBuffer[x])
+			if (TransY > 0 && x > 0 && x < Window.ViewPortWidth && TransY < ZBuffer[x])
 			{
-				for (int_fast32_t y = LineStartY; y < LineEndY; ++y)
+				for (auto y = LineStartY; y < LineEndY; ++y)
 				{
-					int_fast32_t TextureY = (((((y - vScreen) << 8) - (WindowHeight << 7) + (EntityHeight << 7)) * EntitySize) / EntityHeight) >> 8;
+					int_fast32_t TextureY = (((((y - vScreen) << 8) - (Window.ViewPortHeight << 7) + (EntityHeight << 7)) * EntitySize) / EntityHeight) >> 8;
 					
 					uint_fast32_t PixelColor = Entity[Entity[EntityOrder[i]].Number].Texture[TextureIndex][TextureX][TextureY];
 
@@ -724,14 +735,11 @@ void DisplayHUD()
 	// variable is used to keep vertical spacings between drawn textlines
 	int_fast32_t DiffYPos = 0;
 
-	std::string TempString;
-	std::wstring TempStringWide;
-
 	// Display options
 	Buffer.DrawString(HUDOptionLabel.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY), &HUDBrush);
 	
-	TempString = std::string("Press ") + HUDKey + std::string(" ") + HUDHelpText;
-	TempStringWide = std::wstring(TempString.begin(), TempString.end());
+	std::string TempString = std::string("Press ") + HUDKey + std::string(" ") + HUDHelpText;
+	std::wstring TempStringWide = std::wstring(TempString.begin(), TempString.end());
 
 	Buffer.DrawString(TempStringWide.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY + (DiffYPos += 15)), &HUDBrush);
 	
@@ -835,7 +843,7 @@ void DrawPlayerWeapon()
 			int_fast32_t DrawX = x + SwayTempX;
 			int_fast32_t DrawY = y + SwayTempY;
 
-			if ((PixelColor & 0xFFFFFFFF) && DrawY < WindowHeight && DrawX < WindowWidth)
+			if ((PixelColor & 0xFFFFFFFF) && DrawY < Window.ViewPortHeight && DrawX < Window.ViewPortWidth)
 			{
 				BufferLB.SetPixel(DrawX, DrawY, PixelColor);
 			}
