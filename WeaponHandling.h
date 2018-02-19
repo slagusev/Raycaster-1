@@ -102,8 +102,8 @@ void InitWeaponConfig(uint_fast32_t LevelNumber)
 		
 		Weapon[i].MuzzleFlashPosY = GetPrivateProfileInt("MUZZLEFLASH", "MuzzleFlashPosY", 20, IniFile.c_str());
 
-		Weapon[i].PosX = Window.ViewPortWidth - Weapon[i].PosX;
-		Weapon[i].PosY = Window.ViewPortHeight - Weapon[i].PosY;
+		Weapon[i].PosX = WindowViewPortWidth - Weapon[i].PosX;
+		Weapon[i].PosY = WindowViewPortHeight - Weapon[i].PosY;
 	}
 }
 

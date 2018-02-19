@@ -9,24 +9,6 @@
 */
 
 //
-// Structure for main window settings
-// Tried tp "pad" the elements by their size..
-//
-
-struct MainWindow
-{
-	std::string Name;
-	int_fast32_t PosX;
-	int_fast32_t PosY;
-	int_fast32_t ViewPortWidth;
-	int_fast32_t ViewPortHeight;
-	uint_fast32_t WidthMid;
-	uint_fast32_t HeightMid;
-	uint_fast32_t OverallWidth;
-	uint_fast32_t OverallHeight;
-};
-
-//
 // Structure for entities
 // Tried tp "pad" the elements by their size..
 //

@@ -61,22 +61,22 @@ InitGameConfig::InitGameConfig()
 	TempString = TempVal;
 	HUDExitText = std::wstring(TempString.begin(), TempString.end());
 
-	MinimapPosX = GetPrivateProfileInt("MINIMAP", "MinimapPosX", 20, IniFile);
+	MinimapPos.x = GetPrivateProfileInt("MINIMAP", "MinimapPosX", 20, IniFile);
 
-	MinimapPosY = GetPrivateProfileInt("MINIMAP", "MinimapPosY", 618, IniFile);
+	MinimapPos.y = GetPrivateProfileInt("MINIMAP", "MinimapPosY", 618, IniFile);
 	
 	MinimapTileSize = GetPrivateProfileInt("MINIMAP", "MinimapTileSize", 8, IniFile);
 
-	GetPrivateProfileString("WINDOW", "Name", "Raycaster", TempVal, 100, IniFile);
-	Window.Name = TempVal;
+	GetPrivateProfileString("WINDOW", "WindowName", "Raycaster", TempVal, 100, IniFile);
+	WindowName = TempVal;
 
-	Window.PosX = GetPrivateProfileInt("WINDOW", "PosX", 10, IniFile);
+	WindowPos.x = GetPrivateProfileInt("WINDOW", "WindowPosX", 10, IniFile);
 
-	Window.PosY = GetPrivateProfileInt("WINDOW", "PosY", 10, IniFile);
+	WindowPos.y = GetPrivateProfileInt("WINDOW", "WindowPosY", 10, IniFile);
 
-	Window.ViewPortWidth = GetPrivateProfileInt("WINDOW", "ViewPortWidth", 1024, IniFile);
+	WindowViewPortWidth = GetPrivateProfileInt("WINDOW", "WindowViewPortWidth", 1024, IniFile);
 	
-	Window.ViewPortHeight = GetPrivateProfileInt("WINDOW", "ViewPortHeight", 768, IniFile);
+	WindowViewPortHeight = GetPrivateProfileInt("WINDOW", "WindowViewPortHeight", 768, IniFile);
 
 	TextureSize = GetPrivateProfileInt("TEXTURES", "TextureSize ", 1024, IniFile);
 
@@ -116,12 +116,12 @@ InitGameConfig::InitGameConfig()
 	//
 
 	// Define middle of window
-	Window.WidthMid = Window.ViewPortWidth / 2;
-	Window.HeightMid = Window.ViewPortHeight / 2;
+	WindowWidthMid = WindowViewPortWidth / 2;
+	WindowHeightMid = WindowViewPortHeight / 2;
 
 	// Size of window (WindowWidth/Height + controls)
-	Window.OverallWidth = Window.ViewPortWidth + 16;
-	Window.OverallHeight = Window.ViewPortHeight + 39;
+	WindowOverallWidth = WindowViewPortWidth + 16;
+	WindowOverallHeight = WindowViewPortHeight + 39;
 
 	// Factor for bitwise texture operations
 	TextureSizeBitwiseAnd = TextureSize - 1;

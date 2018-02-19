@@ -8,8 +8,23 @@
 *********************************************
 */
 
-// Init main window structure
-MainWindow Window;
+// Init main window settings
+std::string WindowName;
+
+// Position of window on screen (x/y)
+POINT WindowPos;
+
+// size of viewport
+int_fast32_t WindowViewPortWidth;
+int_fast32_t WindowViewPortHeight;
+
+// middle of window
+uint_fast32_t WindowWidthMid;
+uint_fast32_t WindowHeightMid;
+
+// complete size of window including controls, border etc.
+uint_fast32_t WindowOverallWidth;
+uint_fast32_t WindowOverallHeight;
 
 // Setting planes/viewport for raycaster
 float RayPosX;
@@ -57,8 +72,7 @@ std::wstring HUDExitText;
 
 // Settings for MiniMap
 bool MinimapEnabled = true;
-uint_fast32_t MinimapPosX;
-uint_fast32_t MinimapPosY;
+POINT MinimapPos;
 uint_fast32_t MinimapTileSize;
 
 // Initial settings for player movement speed
@@ -67,8 +81,7 @@ float PlayerCollisionDetectionFactor;
 
 // crosshair settings
 std::wstring CrosshairFileName;
-uint_fast32_t CrosshairPosX;
-uint_fast32_t CrosshairPosY;
+POINT CrosshairPos;
 
 // Mouse settings
 float MouseSensitivity;

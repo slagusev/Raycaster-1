@@ -79,7 +79,7 @@ void InitEntityConfig(uint_fast32_t LevelNumber)
 	EntityMoveV = static_cast<float>(atof(TempVal));
 
 	// Resize vectors to needed sizes
-	ZBuffer.resize(Window.ViewPortWidth);
+	ZBuffer.resize(WindowViewPortWidth);
 	EntityOrder.resize(NumberOfUsedEntities);
 	EntityDistance.resize(NumberOfUsedEntities);
 	EntityMap = std::vector<std::vector<uint_fast32_t>>(MapWidth, std::vector<uint_fast32_t>(MapHeight, 0));
