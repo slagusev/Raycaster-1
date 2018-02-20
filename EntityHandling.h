@@ -303,8 +303,6 @@ void MoveEntities()
 {
 	for (uint_fast32_t i = 0; i < NumberOfUsedEntities; ++i)
 	{
-		float EntityCollisionDetectionFactor = Entity[i].MoveSpeed + 0.5f;
-				
 		switch (Entity[i].MovementBehaviour)
 		{
 			case 2:
@@ -312,6 +310,8 @@ void MoveEntities()
 				//
 				// Free roaming mode
 				//
+
+				float EntityCollisionDetectionFactor = Entity[i].MoveSpeed + 0.5f;
 			
 				// Clear old entry on EntityMap
 				EntityMap[static_cast<uint_fast32_t>(Entity[i].PosX)][static_cast<uint_fast32_t>(Entity[i].PosY)] = EntityMapClearField;

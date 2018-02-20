@@ -61,13 +61,19 @@ __forceinline void LockBits::SetShadedPixel(uint_fast32_t x, uint_fast32_t y, ui
 	uint_fast32_t ShadedB = (OriginalB * ShadeFactor) >> 7;
 
 	if (ShadedR > OriginalR)
+	{
 		ShadedR = 0;
+	}
 
 	if (ShadedG > OriginalG)
+	{
 		ShadedG = 0;
+	}
 
 	if (ShadedB > OriginalB)
+	{
 		ShadedB = 0;
+	}
 
 	Pixels[y * StrideShift + x] = (color & 0xff000000) | (ShadedR & 0x00FF0000) | (ShadedG & 0x0000FF00) | (ShadedB & 0x000000FF);
 }

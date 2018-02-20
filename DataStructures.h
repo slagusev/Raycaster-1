@@ -20,6 +20,7 @@ struct EntityStruct
 	uint_fast32_t Number;
 	uint_fast32_t MovementBehaviour;
 	uint_fast32_t WaitTimer;
+	uint_fast32_t RotationFactor;
 	float StartPosX;
 	float StartPosY;
 	float EndPosX;
@@ -30,7 +31,6 @@ struct EntityStruct
 	float PosX;
 	float PosY;
 	char Direction;
-	char RotationFactor;
 };
 
 //

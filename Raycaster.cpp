@@ -131,7 +131,7 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 
 	RegisterClass(&wc);
 		
-	hWnd = CreateWindow(TEXT(WindowName.c_str()), TEXT(WindowName.c_str()), WS_OVERLAPPEDWINDOW, WindowPos.x, WindowPos.y, WindowOverallWidth, WindowOverallHeight, NULL, NULL, hInstance, NULL);
+	hWnd = CreateWindow(TEXT(WindowName.c_str()), TEXT(WindowName.c_str()), WS_OVERLAPPEDWINDOW, WindowPosX, WindowPosY, WindowOverallWidth, WindowOverallHeight, NULL, NULL, hInstance, NULL);
 
 	// Init of level
 	InitLevelConfig(SelectedLevel);
@@ -157,8 +157,8 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	InitWeaponAudio(SelectedLevel);
 
 	// crosshair settings
-	CrosshairPos.x = WindowWidthMid - (CrosshairIMG.GetWidth() / 2);
-	CrosshairPos.y = WindowHeightMid - (CrosshairIMG.GetHeight() / 2);
+	CrosshairPosX = WindowWidthMid - (CrosshairIMG.GetWidth() / 2);
+	CrosshairPosY = WindowHeightMid - (CrosshairIMG.GetHeight() / 2);
 
 	// Set initial position of player on EntityMap
 	EntityMap[static_cast<uint_fast32_t>(PlayerPosX)][static_cast<uint_fast32_t>(PlayerPosY)] = EntityMapPlayerPos;
@@ -172,16 +172,22 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	// Display window
 	ShowWindow(hWnd, iCmdShow);
 	UpdateWindow(hWnd);
+
+	// Init device for raw input (mouse handling)
+	InitRawInputDevice(hWnd);
 	
 	// Create device context (DC)
 	PAINTSTRUCT	ps;
 	HDC	hdc = BeginPaint(hWnd, &ps);
 
-	// Init device for raw input (mouse handling)
-	InitRawInputDevice(hWnd);
-
 	// Create GDI DC for later BitBlt use
 	HDC hdcMem = CreateCompatibleDC(hdc);
+
+	// Create group for multithreading
+	boost::thread_group GameLoopGroup;
+
+	// Get maximum number of concurrent threads
+	size_t NumberOfThreads = boost::thread::hardware_concurrency();
 
 	// Main game loop
 	// fixed timestep method
@@ -226,20 +232,14 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 		RayPosX = PlayerPosX;
 		RayPosY = PlayerPosY;
 
-		// Create group for multithreading
-		boost::thread_group GameLoopGroup;
-
-		// Get maximum number of concurrent threads
-		size_t NumberOfThreads = boost::thread::hardware_concurrency();
-
 		// Init threadpool
 		// see here http://think-async.com/Asio/Recipes
 
 		boost::asio::io_service IOService;
 		
-		std::unique_ptr< boost::asio::io_service::work > work(new boost::asio::io_service::work(IOService));
+		std::unique_ptr<boost::asio::io_service::work> work(new boost::asio::io_service::work(IOService));
 
-		for (auto t = 0; t < NumberOfThreads; ++t)
+		for (size_t t = 0; t < NumberOfThreads; ++t)
 		{
 			GameLoopGroup.create_thread(boost::bind(&boost::asio::io_service::run, &IOService));
 		}
@@ -289,7 +289,7 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 		}
 		
 		// Draw crosshair to buffer
-		Buffer.DrawCachedBitmap(&Crosshair, CrosshairPos.x, CrosshairPos.y);
+		Buffer.DrawCachedBitmap(&Crosshair, CrosshairPosX, CrosshairPosY);
 
 		// Render buffer to screen via GDI / BitBlt
 		HBITMAP hBitmap;
@@ -323,38 +323,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 			if (GetKeyState(HUDKey) & 0x8000)
 			{
 				HUDEnabled = !HUDEnabled;
-				return(0);
 			}
 
 			// Toggle Minimap
 			if (GetKeyState(MiniMapKey) & 0x8000)
 			{
 				MinimapEnabled = !MinimapEnabled;
-				return(0);
 			}
 
 			// Increase mouse sensitivity "+"
 			if ((GetKeyState(VK_OEM_PLUS) & 0x8000) || (GetKeyState(VK_ADD) & 0x8000))
 			{
 				IncreaseMouseSensitivity();
-				return(0);
 			}
 
 			// Decrease mouse sensitivity "-"
 			if ((GetKeyState(VK_OEM_MINUS) & 0x8000) || (GetKeyState(VK_SUBTRACT) & 0x8000))
 			{
 				DecreaseMouseSensitivity();
-				return(0);
 			}
+
+			break;
 					
 		case WM_INPUT:
 			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
 			GetMousePosition();
-			return(0);
+			break;
 		
 		case WM_LBUTTONDOWN:
 			FireWeaponSingleShot();
-			return(0);
+			break;
 
 		case MM_MCINOTIFY:
 			switch (wParam)
@@ -362,7 +360,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 				// "rewind" footsteps audio if played completely
 				case MCI_NOTIFY_SUCCESSFUL:
 					mciSendString("seek PlayerFootSteps to start", NULL, 0, NULL);
-					return(0);
+					break;
 			}
 			
 		case WM_DESTROY:
@@ -412,9 +410,8 @@ void CastGraphics(char RenderPart)
 		float RayDirX = PlayerDirX + PlaneX * Camera;
 		float RayDirY = PlayerDirY + PlaneY * Camera;
 
-		POINT MapPos;
-		MapPos.x = static_cast<int_fast32_t>(RayPosX);
-		MapPos.y = static_cast<int_fast32_t>(RayPosY);
+		int_fast32_t MapPosX = static_cast<int_fast32_t>(RayPosX);
+		int_fast32_t MapPosY = static_cast<int_fast32_t>(RayPosY);
 
 		float deltaDistX = std::abs(1 / RayDirX);
 		float deltaDistY = std::abs(1 / RayDirY);
@@ -428,23 +425,23 @@ void CastGraphics(char RenderPart)
 		if (RayDirX < 0)
 		{
 			StepX = -1;
-			SideDistX = (RayPosX - MapPos.x) * deltaDistX;
+			SideDistX = (RayPosX - MapPosX) * deltaDistX;
 		}
 		else
 		{
 			StepX = 1;
-			SideDistX = (MapPos.x + 1 - RayPosX) * deltaDistX;
+			SideDistX = (MapPosX + 1 - RayPosX) * deltaDistX;
 		}
 
 		if (RayDirY < 0)
 		{
 			StepY = -1;
-			SideDistY = (RayPosY - MapPos.y) * deltaDistY;
+			SideDistY = (RayPosY - MapPosY) * deltaDistY;
 		}
 		else
 		{
 			StepY = 1;
-			SideDistY = (MapPos.y + 1 - RayPosY) * deltaDistY;
+			SideDistY = (MapPosY + 1 - RayPosY) * deltaDistY;
 		}
 
 		bool WallHit = false;
@@ -455,17 +452,17 @@ void CastGraphics(char RenderPart)
 			if (SideDistX < SideDistY)
 			{
 				SideDistX += deltaDistX;
-				MapPos.x += StepX;
+				MapPosX += StepX;
 				WallSide = false;
 			}
 			else
 			{
 				SideDistY += deltaDistY;
-				MapPos.y += StepY;
+				MapPosY += StepY;
 				WallSide = true;
 			}
 
-			if (LevelMap[MapPos.x][MapPos.y] > 0)
+			if (LevelMap[MapPosX][MapPosY] > 0)
 			{
 				WallHit = true;
 			}
@@ -475,11 +472,11 @@ void CastGraphics(char RenderPart)
 
 		if (WallSide)
 		{
-			WallDist = (MapPos.y - RayPosY + (1 - StepY) / 2) / RayDirY;
+			WallDist = (MapPosY - RayPosY + (1 - StepY) / 2) / RayDirY;
 		}
 		else
 		{
-			WallDist = (MapPos.x - RayPosX + (1 - StepX) / 2) / RayDirX;
+			WallDist = (MapPosX - RayPosX + (1 - StepX) / 2) / RayDirX;
 		}
 
 		int_fast32_t LineHeight = static_cast<int_fast32_t>(WindowViewPortHeight / WallDist);
@@ -519,16 +516,14 @@ void CastGraphics(char RenderPart)
 				TextureX = TextureSize - TextureX - 1;
 			}
 
-			int_fast32_t LevelMapPos = LevelMap[MapPos.x][MapPos.y] - 1;
+			int_fast32_t LevelMapPos = LevelMap[MapPosX][MapPosY] - 1;
 
 			uint_fast32_t ShadeFactorWalls = static_cast<uint_fast32_t>(72 - (WallDist * 14));
 
-			for (auto y = LineStart; y < LineEnd; ++y)
+			for (int_fast32_t y = LineStart; y < LineEnd; ++y)
 			{
-				int_fast32_t TextureY = ((((y << 8) - (WindowViewPortHeight << 7) + (LineHeight << 7)) * TextureSize) / LineHeight) >> 8;
-				
 				// Draw walls
-				BufferLB.SetShadedPixel(x, y, Texture[LevelMapPos][TextureX][TextureY], ShadeFactorWalls);
+				BufferLB.SetShadedPixel(x, y, Texture[LevelMapPos][TextureX][((((y << 8) - (WindowViewPortHeight << 7) + (LineHeight << 7)) * TextureSize) / LineHeight) >> 8], ShadeFactorWalls);
 			}
 		}
 
@@ -539,30 +534,30 @@ void CastGraphics(char RenderPart)
 			
 			if (!WallSide && RayDirX > 0)
 			{
-				FloorWallX = static_cast<float>(MapPos.x);
-				FloorWallY = MapPos.y + WallX;
+				FloorWallX = static_cast<float>(MapPosX);
+				FloorWallY = MapPosY + WallX;
 			}
 			else if (!WallSide && RayDirX < 0)
 			{
-				FloorWallX = MapPos.x + 1.0f;
-				FloorWallY = MapPos.y + WallX;
+				FloorWallX = MapPosX + 1.0f;
+				FloorWallY = MapPosY + WallX;
 			}
 			else if (WallSide && RayDirY > 0)
 			{
-				FloorWallX = MapPos.x + WallX;
-				FloorWallY = static_cast<float>(MapPos.y);
+				FloorWallX = MapPosX + WallX;
+				FloorWallY = static_cast<float>(MapPosY);
 			}
 			else
 			{
-				FloorWallX = MapPos.x + WallX;
-				FloorWallY = MapPos.y + 1.0f;
+				FloorWallX = MapPosX + WallX;
+				FloorWallY = MapPosY + 1.0f;
 			}
 
 			switch (RenderPart)
 			{
 				case 'F':
 				{
-					for (auto y = LineEnd; y < WindowViewPortHeight; ++y)
+					for (int_fast32_t y = LineEnd; y < WindowViewPortHeight; ++y)
 					{
 						float FactorW = (WindowViewPortHeight / (2.0f * y - WindowViewPortHeight)) / WallDist;
 
@@ -579,7 +574,7 @@ void CastGraphics(char RenderPart)
 					// Needs only to be calculated once
 					ZBuffer[x] = WallDist;
 
-					for (auto y = LineEnd; y < WindowViewPortHeight; ++y)
+					for (int_fast32_t y = LineEnd; y < WindowViewPortHeight; ++y)
 					{
 						float FactorW = (WindowViewPortHeight / (2.0f * y - WindowViewPortHeight)) / WallDist;
 
@@ -633,7 +628,7 @@ void RenderEntities()
 		float CosTheta1 = (EntityTempX + EntityTempY) * static_cast<float>(M_SQRT1_2);
 		float CosTheta3 = (EntityTempY - EntityTempX) * static_cast<float>(M_SQRT1_2);
 
-		unsigned char TextureIndex = 0;
+		uint_fast32_t TextureIndex = 0;
 		float ClosestTheta = EntityTempX;
 
 		if (ClosestTheta < CosTheta1) 
@@ -678,7 +673,7 @@ void RenderEntities()
 		}
 
 		// Add rotation factor to Textureindex dependent on heading direction of entity
-		unsigned char TextureIndexTemp = TextureIndex + Entity[Entity[EntityOrder[i]].Number].RotationFactor;
+		uint_fast32_t TextureIndexTemp = TextureIndex + Entity[Entity[EntityOrder[i]].Number].RotationFactor;
 
 		if (TextureIndexTemp < 8)
 		{
@@ -692,17 +687,15 @@ void RenderEntities()
 		// Set shadefactor
 		uint_fast32_t ShadeFactorEntity = static_cast<uint_fast32_t>(72 - (TransY * 14));
 
-		for (auto x = LineStartX; x < LineEndX; ++x)
+		for (int_fast32_t x = LineStartX; x < LineEndX; ++x)
 		{
 			int_fast32_t TextureX = static_cast<int_fast32_t>(x - ((-EntityWidth >> 1) + EntitySX)) * EntitySize / EntityWidth;
 
 			if (TransY > 0 && x > 0 && x < WindowViewPortWidth && TransY < ZBuffer[x])
 			{
-				for (auto y = LineStartY; y < LineEndY; ++y)
+				for (int_fast32_t y = LineStartY; y < LineEndY; ++y)
 				{
-					int_fast32_t TextureY = (((((y - vScreen) << 8) - (WindowViewPortHeight << 7) + (EntityHeight << 7)) * EntitySize) / EntityHeight) >> 8;
-					
-					uint_fast32_t PixelColor = Entity[Entity[EntityOrder[i]].Number].Texture[TextureIndex][TextureX][TextureY];
+					uint_fast32_t PixelColor = Entity[Entity[EntityOrder[i]].Number].Texture[TextureIndex][TextureX][(((((y - vScreen) << 8) - (WindowViewPortHeight << 7) + (EntityHeight << 7)) * EntitySize) / EntityHeight) >> 8];
 
 					// Check if alphachannel of pixel ist not transparent and draw pixel
 					if (PixelColor & 0xFFFFFFFF)
@@ -734,7 +727,7 @@ void FPSCounter()
 void DisplayHUD()
 {
 	// variable is used to keep vertical spacings between drawn textlines
-	int_fast32_t DiffYPos = 0;
+	uint_fast32_t DiffYPos = 0;
 
 	// Display options
 	Buffer.DrawString(HUDOptionLabel.c_str(), -1, &HUDFont, Gdiplus::PointF(HUDMenuPosX, HUDMenuPosY), &HUDBrush);
@@ -765,11 +758,11 @@ void DisplayHUD()
 
 void DisplayMinimap()
 {
-	int_fast32_t x = MinimapPos.x;
+	int_fast32_t x = MinimapPosX;
 
 	for (uint_fast32_t i = 0; i < MapHeight; ++i)
 	{
-		int_fast32_t y = MinimapPos.y;
+		int_fast32_t y = MinimapPosY;
 
 		for (uint_fast32_t j = 0; j < MapWidth; ++j)
 		{
@@ -815,8 +808,8 @@ void DrawPlayerWeapon()
 				// currently selected Texture[0] as placeholder for upcoming variable!
 				uint_fast32_t PixelColor = Weapon[SelectedPlayerWeapon].MuzzleFlashTexture[x][y];
 
-				int_fast32_t DrawX = x + SwayTempX;
-				int_fast32_t DrawY = y + SwayTempY;
+				uint_fast32_t DrawX = x + SwayTempX;
+				uint_fast32_t DrawY = y + SwayTempY;
 
 				if (PixelColor & 0xFFFFFFFF)
 				{
@@ -839,7 +832,7 @@ void DrawPlayerWeapon()
 		for (uint_fast32_t x = 0; x < Weapon[SelectedPlayerWeapon].Width; ++x)
 		{
 			// currently selected Texture[0] as placeholder for upcoming variable!
-			uint_fast32_t PixelColor = Weapon[SelectedPlayerWeapon].Texture[0][x][y];
+			int_fast32_t PixelColor = Weapon[SelectedPlayerWeapon].Texture[0][x][y];
 
 			int_fast32_t DrawX = x + SwayTempX;
 			int_fast32_t DrawY = y + SwayTempY;

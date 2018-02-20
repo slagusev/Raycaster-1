@@ -61,18 +61,18 @@ InitGameConfig::InitGameConfig()
 	TempString = TempVal;
 	HUDExitText = std::wstring(TempString.begin(), TempString.end());
 
-	MinimapPos.x = GetPrivateProfileInt("MINIMAP", "MinimapPosX", 20, IniFile);
+	MinimapPosX = GetPrivateProfileInt("MINIMAP", "MinimapPosX", 20, IniFile);
 
-	MinimapPos.y = GetPrivateProfileInt("MINIMAP", "MinimapPosY", 618, IniFile);
+	MinimapPosY = GetPrivateProfileInt("MINIMAP", "MinimapPosY", 618, IniFile);
 	
 	MinimapTileSize = GetPrivateProfileInt("MINIMAP", "MinimapTileSize", 8, IniFile);
 
 	GetPrivateProfileString("WINDOW", "WindowName", "Raycaster", TempVal, 100, IniFile);
 	WindowName = TempVal;
 
-	WindowPos.x = GetPrivateProfileInt("WINDOW", "WindowPosX", 10, IniFile);
+	WindowPosX = GetPrivateProfileInt("WINDOW", "WindowPosX", 10, IniFile);
 
-	WindowPos.y = GetPrivateProfileInt("WINDOW", "WindowPosY", 10, IniFile);
+	WindowPosY = GetPrivateProfileInt("WINDOW", "WindowPosY", 10, IniFile);
 
 	WindowViewPortWidth = GetPrivateProfileInt("WINDOW", "WindowViewPortWidth", 1024, IniFile);
 	
