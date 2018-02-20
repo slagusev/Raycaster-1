@@ -325,7 +325,7 @@ void MoveEntities()
 
 				if (Entity[i].WaitTimer > 0)
 				{
-					Entity[i].WaitTimer -= 1;
+					--Entity[i].WaitTimer;
 				}
 				else
 				{

@@ -209,7 +209,7 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 		Loops = 0;
 		SystemTime = GetTickCount();
 
-		while (SystemTime > NextTick && Loops < MaxFrameSkip)
+		while (SystemTime > NextTick && ++Loops < MaxFrameSkip)
 		{
 			// Handle controls and change of direction
 			ControlPlayerMovement(hWnd);
@@ -219,7 +219,6 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 
 			// Calculate remaining frametime
 			NextTick += LengthOfFrame;
-			++Loops;
 		}
 
 		// Calculate frames per second
@@ -373,33 +372,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 
 void CastGraphics(char RenderPart)
 {
-	int_fast32_t Start;
-	int_fast32_t End;
+	int_fast32_t Start = 0;
+	int_fast32_t End = WindowViewPortWidth;
 
 	switch (RenderPart)
 	{
 		case 'L':
 		{
-			Start = 0;
 			End = WindowWidthMid;
 			break;
 		}
 		case 'R':
 		{
 			Start = WindowWidthMid;
-			End = WindowViewPortWidth;
-			break;
-		}
-		case 'F':
-		{
-			Start = 0;
-			End = WindowViewPortWidth;
-			break;
-		}
-		case 'C':
-		{
-			Start = 0;
-			End = WindowViewPortWidth;
 			break;
 		}
 	}
@@ -808,19 +793,14 @@ void DrawPlayerWeapon()
 				// currently selected Texture[0] as placeholder for upcoming variable!
 				uint_fast32_t PixelColor = Weapon[SelectedPlayerWeapon].MuzzleFlashTexture[x][y];
 
-				uint_fast32_t DrawX = x + SwayTempX;
-				uint_fast32_t DrawY = y + SwayTempY;
-
 				if (PixelColor & 0xFFFFFFFF)
 				{
-					BufferLB.SetPixel(DrawX + Weapon[SelectedPlayerWeapon].MuzzleFlashPosX, DrawY - Weapon[SelectedPlayerWeapon].MuzzleFlashPosY, PixelColor);
+					BufferLB.SetPixel(x + SwayTempX + Weapon[SelectedPlayerWeapon].MuzzleFlashPosX, y + SwayTempY - Weapon[SelectedPlayerWeapon].MuzzleFlashPosY, PixelColor);
 				}
 			}
 		}
 	
-		--MuzzleFlashCounter;
-		
-		if (MuzzleFlashCounter == 0)
+		if (--MuzzleFlashCounter == 0)
 		{
 			WeaponFiredFlag = false;
 		}
