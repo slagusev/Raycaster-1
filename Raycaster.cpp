@@ -173,9 +173,10 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	ShowWindow(hWnd, iCmdShow);
 	UpdateWindow(hWnd);
 
-	// Init device for raw input (mouse handling)
-	InitRawInputDevice(hWnd);
-	
+	// Init device for raw input (mouse handling and keyboard)
+	InitRawInputDevice(hWnd, HID_MOUSE);
+	InitRawInputDevice(hWnd, HID_KEYBOARD);
+
 	// Create device context (DC)
 	PAINTSTRUCT	ps;
 	HDC	hdc = BeginPaint(hWnd, &ps);
@@ -300,10 +301,16 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 
 	return uint_fast32_t (msg.wParam);
 
-	// Close window, end GDI+ and exit program
+	// Close window, end GDI+
 	EndPaint(hWnd, &ps);
 	CloseWindow(hWnd);
 	Gdiplus::GdiplusShutdown(gdiplusToken);
+
+	// remove RAW INPUT devices
+	UnregisterRawInputDevice(HID_MOUSE);
+	UnregisterRawInputDevice(HID_KEYBOARD);
+
+	//  and exit program
 	exit(0);
 }
 
@@ -317,42 +324,53 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 		case WM_CREATE:
 			return(0);
 
-		case WM_KEYDOWN:
-			// Enable/disable HUD
-			if (GetKeyState(HUDKey) & 0x8000)
-			{
-				HUDEnabled = !HUDEnabled;
-			}
-
-			// Toggle Minimap
-			if (GetKeyState(MiniMapKey) & 0x8000)
-			{
-				MinimapEnabled = !MinimapEnabled;
-			}
-
-			// Increase mouse sensitivity "+"
-			if ((GetKeyState(VK_OEM_PLUS) & 0x8000) || (GetKeyState(VK_ADD) & 0x8000))
-			{
-				IncreaseMouseSensitivity();
-			}
-
-			// Decrease mouse sensitivity "-"
-			if ((GetKeyState(VK_OEM_MINUS) & 0x8000) || (GetKeyState(VK_SUBTRACT) & 0x8000))
-			{
-				DecreaseMouseSensitivity();
-			}
-
-			break;
-					
 		case WM_INPUT:
 			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-			GetMousePosition();
+
+			if (RawDev->header.dwType == RIM_TYPEMOUSE)
+			{
+				// Get mouse position
+				MousePos.x = RawDev->data.mouse.lLastX;
+				MousePos.y = RawDev->data.mouse.lLastY;
+
+				// Get state of mouse bot
+				if (RawDev->data.mouse.ulButtons & RI_MOUSE_LEFT_BUTTON_DOWN)
+				{
+					FireWeaponSingleShot();
+				}
+			}
+
+			if (RawDev->header.dwType == RIM_TYPEKEYBOARD)
+			{
+				if (RawDev->data.keyboard.Message == WM_KEYDOWN || RawDev->data.keyboard.Message == WM_SYSKEYDOWN)
+				{
+					// Enable/disable HUD
+					if (RawDev->data.keyboard.VKey == HUDKey)
+					{
+						HUDEnabled = !HUDEnabled;
+					}
+
+					// Toggle Minimap
+					if (RawDev->data.keyboard.VKey == MiniMapKey)
+					{
+						MinimapEnabled = !MinimapEnabled;
+					}
+
+					// Increase mouse sensitivity "+"
+					if ((RawDev->data.keyboard.VKey == VK_OEM_PLUS) || (RawDev->data.keyboard.VKey == VK_ADD))
+					{
+						IncreaseMouseSensitivity();
+					}
+
+					// Decrease mouse sensitivity "-"
+					if ((RawDev->data.keyboard.VKey == VK_OEM_MINUS) || (RawDev->data.keyboard.VKey == VK_SUBTRACT))
+					{
+						DecreaseMouseSensitivity();
+					}
+				}
+			}
 			break;
 		
-		case WM_LBUTTONDOWN:
-			FireWeaponSingleShot();
-			break;
-
 		case MM_MCINOTIFY:
 			switch (wParam)
 			{

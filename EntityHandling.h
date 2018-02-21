@@ -345,12 +345,12 @@ void MoveEntities()
 					ChangeEntityDirection("lr"[rand() % 2], i);
 				}
 
+				// Remark new position of entity on EntityMap (used for collision detection)
+				EntityMap[static_cast<uint_fast32_t>(Entity[i].PosX)][static_cast<uint_fast32_t>(Entity[i].PosY)] = EntityMapEnemyPos;
+
 				break;
 			}
 		}
-
-		// Remark new position of entity on EntityMap (used for collision detection)
-		EntityMap[static_cast<uint_fast32_t>(Entity[i].PosX)][static_cast<uint_fast32_t>(Entity[i].PosY)] = EntityMapEnemyPos;
 	}
 }
 
