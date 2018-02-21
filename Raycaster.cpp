@@ -156,6 +156,20 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	InitPlayerAudio(SelectedLevel);
 	InitWeaponAudio(SelectedLevel);
 
+	// Display window
+	ShowWindow(hWnd, iCmdShow);
+
+	// Create device context (DC)
+	PAINTSTRUCT	ps;
+	HDC	hdc = BeginPaint(hWnd, &ps);
+
+	// Create GDI DC for later BitBlt use
+	HDC hdcMem = CreateCompatibleDC(hdc);
+
+	// Init device for raw input (mouse handling and keyboard)
+	InitRawInputDevice(hWnd, HID_MOUSE);
+	InitRawInputDevice(hWnd, HID_KEYBOARD);
+
 	// crosshair settings
 	CrosshairPosX = WindowWidthMid - (CrosshairIMG.GetWidth() / 2);
 	CrosshairPosY = WindowHeightMid - (CrosshairIMG.GetHeight() / 2);
@@ -168,27 +182,6 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 
 	// Start music
 	PlayLevelBackgroundMusic();
-
-	// Display window
-	ShowWindow(hWnd, iCmdShow);
-	UpdateWindow(hWnd);
-
-	// Init device for raw input (mouse handling and keyboard)
-	InitRawInputDevice(hWnd, HID_MOUSE);
-	InitRawInputDevice(hWnd, HID_KEYBOARD);
-
-	// Create device context (DC)
-	PAINTSTRUCT	ps;
-	HDC	hdc = BeginPaint(hWnd, &ps);
-
-	// Create GDI DC for later BitBlt use
-	HDC hdcMem = CreateCompatibleDC(hdc);
-
-	// Create group for multithreading
-	boost::thread_group GameLoopGroup;
-
-	// Get maximum number of concurrent threads
-	size_t NumberOfThreads = boost::thread::hardware_concurrency();
 
 	// Main game loop
 	// fixed timestep method
@@ -231,6 +224,12 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 		// Update RayCast view by player position
 		RayPosX = PlayerPosX;
 		RayPosY = PlayerPosY;
+
+		// Create group for multithreading
+		boost::thread_group GameLoopGroup;
+
+		// Get maximum number of concurrent threads
+		size_t NumberOfThreads = boost::thread::hardware_concurrency();
 
 		// Init threadpool
 		// see here http://think-async.com/Asio/Recipes
@@ -316,6 +315,11 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 
 LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM lParam)
 {
+	// Declare some vars for RAW INPUT handling
+	uint_fast32_t dwSize;
+	LPBYTE lpb;
+	RAWINPUT* RawDev;
+	
 	switch (message)
 	{
 		case WM_PAINT:
@@ -325,51 +329,61 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 			return(0);
 
 		case WM_INPUT:
-			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-
-			if (RawDev->header.dwType == RIM_TYPEMOUSE)
 			{
-				// Get mouse position
-				MousePos.x = RawDev->data.mouse.lLastX;
-				MousePos.y = RawDev->data.mouse.lLastY;
+				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 
-				// Get state of mouse bot
-				if (RawDev->data.mouse.ulButtons & RI_MOUSE_LEFT_BUTTON_DOWN)
+				lpb = new BYTE[dwSize];
+
+				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+				RawDev = (RAWINPUT*)lpb;
+
+				if (RawDev->header.dwType == RIM_TYPEMOUSE)
 				{
-					FireWeaponSingleShot();
-				}
-			}
+					// Get mouse position
+					MousePos.x = RawDev->data.mouse.lLastX;
+					MousePos.y = RawDev->data.mouse.lLastY;
 
-			if (RawDev->header.dwType == RIM_TYPEKEYBOARD)
-			{
-				if (RawDev->data.keyboard.Message == WM_KEYDOWN || RawDev->data.keyboard.Message == WM_SYSKEYDOWN)
-				{
-					// Enable/disable HUD
-					if (RawDev->data.keyboard.VKey == HUDKey)
+					// Get state of mouse bot
+					if (RawDev->data.mouse.ulButtons & RI_MOUSE_LEFT_BUTTON_DOWN)
 					{
-						HUDEnabled = !HUDEnabled;
-					}
-
-					// Toggle Minimap
-					if (RawDev->data.keyboard.VKey == MiniMapKey)
-					{
-						MinimapEnabled = !MinimapEnabled;
-					}
-
-					// Increase mouse sensitivity "+"
-					if ((RawDev->data.keyboard.VKey == VK_OEM_PLUS) || (RawDev->data.keyboard.VKey == VK_ADD))
-					{
-						IncreaseMouseSensitivity();
-					}
-
-					// Decrease mouse sensitivity "-"
-					if ((RawDev->data.keyboard.VKey == VK_OEM_MINUS) || (RawDev->data.keyboard.VKey == VK_SUBTRACT))
-					{
-						DecreaseMouseSensitivity();
+						FireWeaponSingleShot();
 					}
 				}
+
+				if (RawDev->header.dwType == RIM_TYPEKEYBOARD)
+				{
+					if (RawDev->data.keyboard.Message == WM_KEYDOWN || RawDev->data.keyboard.Message == WM_SYSKEYDOWN)
+					{
+						// Enable/disable HUD
+						if (RawDev->data.keyboard.VKey == HUDKey)
+						{
+							HUDEnabled = !HUDEnabled;
+						}
+
+						// Toggle Minimap
+						if (RawDev->data.keyboard.VKey == MiniMapKey)
+						{
+							MinimapEnabled = !MinimapEnabled;
+						}
+
+						// Increase mouse sensitivity "+"
+						if ((RawDev->data.keyboard.VKey == VK_OEM_PLUS) || (RawDev->data.keyboard.VKey == VK_ADD))
+						{
+							IncreaseMouseSensitivity();
+						}
+
+						// Decrease mouse sensitivity "-"
+						if ((RawDev->data.keyboard.VKey == VK_OEM_MINUS) || (RawDev->data.keyboard.VKey == VK_SUBTRACT))
+						{
+							DecreaseMouseSensitivity();
+						}
+					}
+				}
+
+				delete[] lpb;
+				break;
 			}
-			break;
 		
 		case MM_MCINOTIFY:
 			switch (wParam)
@@ -382,7 +396,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 			
 		case WM_DESTROY:
 			PostQuitMessage(0);
-			return(0);
+			break;
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);

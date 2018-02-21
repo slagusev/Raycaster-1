@@ -25,12 +25,6 @@ void DecreaseMouseSensitivity();
 const USHORT HID_MOUSE = 2;
 const USHORT HID_KEYBOARD = 6;
 
-// dwSize is 48 for 64bit systems, and 40 for 32bit systems
-uint_fast32_t dwSize = 48;
-LPBYTE lpb = new BYTE[dwSize];
-
-RAWINPUT* RawDev = (RAWINPUT*)lpb;
-
 RECT WindowRect;
 
 std::wstring MouseSensitivityPrint;
