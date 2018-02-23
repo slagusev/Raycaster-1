@@ -309,17 +309,12 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	UnregisterRawInputDevice(HID_MOUSE);
 	UnregisterRawInputDevice(HID_KEYBOARD);
 
-	//  and exit program
+	// and exit program
 	exit(0);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM lParam)
 {
-	// Declare some vars for RAW INPUT handling
-	uint_fast32_t dwSize;
-	LPBYTE lpb;
-	RAWINPUT* RawDev;
-	
 	switch (message)
 	{
 		case WM_PAINT:
@@ -330,13 +325,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 
 		case WM_INPUT:
 			{
+				uint_fast32_t dwSize;
+
+				// determine dwSize (should be 48 for 64bit systems and 40 for 32bit systems)
 				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 
-				lpb = new BYTE[dwSize];
+				LPBYTE lpb = new BYTE[dwSize];
 
 				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
 
-				RawDev = (RAWINPUT*)lpb;
+				RAWINPUT* RawDev = (RAWINPUT*)lpb;
 
 				if (RawDev->header.dwType == RIM_TYPEMOUSE)
 				{
@@ -414,10 +412,10 @@ void CastGraphics(char RenderPart)
 			End = WindowWidthMid;
 			break;
 		}
+		
 		case 'R':
 		{
 			Start = WindowWidthMid;
-			break;
 		}
 	}
 
@@ -521,7 +519,7 @@ void CastGraphics(char RenderPart)
 
 		if (RenderPart == 'L' || RenderPart == 'R')
 		{
-			int_fast32_t TextureX = static_cast<int_fast32_t>(WallX * static_cast<float>(TextureSize));
+			int_fast32_t TextureX = static_cast<int_fast32_t>(WallX * TextureSize);
 
 			if (!WallSide && RayDirX > 0)
 			{
@@ -543,8 +541,7 @@ void CastGraphics(char RenderPart)
 				BufferLB.SetShadedPixel(x, y, Texture[LevelMapPos][TextureX][((((y << 8) - (WindowViewPortHeight << 7) + (LineHeight << 7)) * TextureSize) / LineHeight) >> 8], ShadeFactorWalls);
 			}
 		}
-
-		if (RenderPart == 'F' || RenderPart == 'C')
+		else
 		{
 			float FloorWallX;
 			float FloorWallY;
@@ -570,33 +567,34 @@ void CastGraphics(char RenderPart)
 				FloorWallY = MapPosY + 1.0f;
 			}
 
-			switch (RenderPart)
-			{
-				case 'F':
-				{
-					for (int_fast32_t y = LineEnd; y < WindowViewPortHeight; ++y)
-					{
-						float FactorW = (WindowViewPortHeight / (2.0f * y - WindowViewPortHeight)) / WallDist;
+			// Store WallDist in 1D-ZBuffer for later calculation of entity distance
+			// Needs only to be calculated once
+			ZBuffer[x] = WallDist;
 
+			for (int_fast32_t y = LineEnd; y < WindowViewPortHeight; ++y)
+			{
+				float FactorW = (WindowViewPortHeight / (2.0f * y - WindowViewPortHeight)) / WallDist;
+
+				uint_fast32_t ShadeFactorFloorCeiling = static_cast<uint_fast32_t>(64 - ((WindowViewPortHeight - y) >> 2));
+
+				int_fast32_t TextureX = static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd;
+				
+				int_fast32_t TextureY = static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd;
+
+				switch (RenderPart)
+				{
+					case 'F':
+					{
 						// Draw floor
-						BufferLB.SetShadedPixel(x, y, Texture[FloorTexture][static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd][static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd], 64 - ((WindowViewPortHeight - y) >> 2));
+						BufferLB.SetShadedPixel(x, y, Texture[FloorTexture][TextureX][TextureY], ShadeFactorFloorCeiling);
+
+						break;
 					}
 
-					break;
-				}
-
-				case 'C':
-				{
-					// Store WallDist in 1D-ZBuffer for later calculation of entity distance
-					// Needs only to be calculated once
-					ZBuffer[x] = WallDist;
-
-					for (int_fast32_t y = LineEnd; y < WindowViewPortHeight; ++y)
+					case 'C':
 					{
-						float FactorW = (WindowViewPortHeight / (2.0f * y - WindowViewPortHeight)) / WallDist;
-
 						// Draw ceiling
-						BufferLB.SetShadedPixel(x, (WindowViewPortHeight - y), Texture[CeilingTexture][static_cast<int_fast32_t>((FactorW * FloorWallX + (1 - FactorW) * PlayerPosX) * TextureSize) & TextureSizeBitwiseAnd][static_cast<int_fast32_t>((FactorW * FloorWallY + (1 - FactorW) * PlayerPosY) * TextureSize) & TextureSizeBitwiseAnd], 64 - ((WindowViewPortHeight - y) >> 2));
+						BufferLB.SetShadedPixel(x, (WindowViewPortHeight - y), Texture[CeilingTexture][TextureX][TextureY], ShadeFactorFloorCeiling);
 					}
 				}
 			}
@@ -613,28 +611,6 @@ void RenderEntities()
 	{
 		float EntityPosX = Entity[EntityOrder[i]].PosX - PlayerPosX;
 		float EntityPosY = Entity[EntityOrder[i]].PosY - PlayerPosY;
-
-		float TransX = InverseMatrix * (PlayerDirY * EntityPosX - PlayerDirX * EntityPosY);
-		float TransY = InverseMatrix * (-PlaneY * EntityPosX + PlaneX * EntityPosY);
-
-		int_fast32_t EntitySX = static_cast<int_fast32_t>((WindowViewPortWidth >> 1) * (1 + TransX / TransY));
-		int_fast32_t vScreen = static_cast<int_fast32_t>(EntityMoveV / TransY);
-
-		int_fast32_t EntityHeight = abs(static_cast<int_fast32_t>(WindowViewPortHeight / (TransY))) / EntitySizeDivV;
-		int_fast32_t LineStartY = ((-EntityHeight / 2) + (WindowViewPortHeight / 2) + vScreen);
-
-		LineStartY = max(LineStartY, 0);
-
-		int_fast32_t LineEndY = (EntityHeight >> 1) + (WindowViewPortHeight >> 1) + vScreen;
-
-		LineEndY = min(LineEndY, WindowViewPortHeight);
-
-		int_fast32_t EntityWidth = abs(static_cast<int_fast32_t>(WindowViewPortHeight / (TransY))) / EntitySizeDivU;
-		int_fast32_t LineStartX = (-EntityWidth / 2) + EntitySX;
-
-		int_fast32_t LineEndX = (EntityWidth >> 1) + EntitySX;
-
-		LineEndX = min(LineEndX, WindowViewPortWidth);
 
 		// Get angle between player and entity without atan2
 		// Returns TextureIndex (0..7) for adressing correct texture
@@ -700,7 +676,35 @@ void RenderEntities()
 		{
 			TextureIndex = TextureIndexTemp - 8;
 		}
-			
+
+		// calculate entity
+		float TransX = InverseMatrix * (PlayerDirY * EntityPosX - PlayerDirX * EntityPosY);
+		float TransY = InverseMatrix * (-PlaneY * EntityPosX + PlaneX * EntityPosY);
+		
+		int_fast32_t vScreen = static_cast<int_fast32_t>(EntityMoveV / TransY);
+
+		int_fast32_t EntitySizeTemp = static_cast<int_fast32_t>(abs(WindowViewPortHeight) / TransY);
+
+		int_fast32_t EntityHeight = EntitySizeTemp / EntitySizeDivV;
+
+		int_fast32_t EntityWidth = EntitySizeTemp / EntitySizeDivU;
+
+		int_fast32_t LineStartY = ((-EntityHeight / 2) + (WindowViewPortHeight / 2) + vScreen);
+
+		LineStartY = max(LineStartY, 0);
+
+		int_fast32_t LineEndY = (EntityHeight >> 1) + (WindowViewPortHeight >> 1) + vScreen;
+
+		LineEndY = min(LineEndY, WindowViewPortHeight);
+
+		int_fast32_t EntitySX = static_cast<int_fast32_t>((WindowViewPortWidth >> 1) * (1 + TransX / TransY));
+
+		int_fast32_t LineStartX = (-EntityWidth / 2) + EntitySX;
+
+		int_fast32_t LineEndX = (EntityWidth >> 1) + EntitySX;
+
+		LineEndX = min(LineEndX, WindowViewPortWidth);
+
 		// Set shadefactor
 		uint_fast32_t ShadeFactorEntity = static_cast<uint_fast32_t>(72 - (TransY * 14));
 
