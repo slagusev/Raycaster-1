@@ -59,7 +59,6 @@ uint_fast32_t FPSUpdate;
 uint_fast32_t FPSFrames;
 uint_fast32_t FPS;
 uint_fast32_t SystemTime;
-std::wstring FPSPrint;
 
 // Initial settings for Head Up Display (HUD)
 Gdiplus::REAL HUDMenuPosX;

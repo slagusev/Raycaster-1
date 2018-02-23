@@ -229,8 +229,9 @@ void InitWeaponMuzzleFlashTextures(uint_fast32_t LevelNumber)
 
 void CalculateWeaponSway()
 {
-	WeaponSwayX = cosf(WeaponPace * Weapon[SelectedPlayerWeapon].Weight) * 6.0f;
-	WeaponSwayY = sinf(WeaponPace * (Weapon[SelectedPlayerWeapon].Weight * 1.5f)) * 6.0f;
+	float PaceWeightProduct = WeaponPace * Weapon[SelectedPlayerWeapon].Weight;
+	WeaponSwayX = cosf(PaceWeightProduct) * 6.0f;
+	WeaponSwayY = sinf(PaceWeightProduct * 1.5f) * 6.0f;
 }
 
 void FireWeaponSingleShot()

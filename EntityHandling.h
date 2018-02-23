@@ -248,7 +248,6 @@ void ChangeEntityDirection(char NewDirection, uint_fast32_t i)
 				Entity[i].DirY = 0.0f;
 				Entity[i].Direction = 'S';
 				Entity[i].RotationFactor = 4;
-				break;
 			}
 
 			break;
@@ -293,7 +292,6 @@ void ChangeEntityDirection(char NewDirection, uint_fast32_t i)
 				Entity[i].DirY = 0.0f;
 				Entity[i].Direction = 'N';
 				Entity[i].RotationFactor = 0;
-				break;
 			}
 		}
 	}
@@ -347,8 +345,6 @@ void MoveEntities()
 
 				// Remark new position of entity on EntityMap (used for collision detection)
 				EntityMap[static_cast<uint_fast32_t>(Entity[i].PosX)][static_cast<uint_fast32_t>(Entity[i].PosY)] = EntityMapEnemyPos;
-
-				break;
 			}
 		}
 	}

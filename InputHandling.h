@@ -12,10 +12,9 @@
 // Declare functions
 //
 
-void InitRawInputDevice(HWND hWnd, USHORT Device);
+void RegisterRawInputDevice(HWND hWnd, USHORT Device);
 void UnregisterRawInputDevice(USHORT Device);
-void IncreaseMouseSensitivity();
-void DecreaseMouseSensitivity();
+void CatchMouse(HWND hWnd);
 
 //
 // Variables and constants
@@ -25,9 +24,8 @@ void DecreaseMouseSensitivity();
 const USHORT HID_MOUSE = 2;
 const USHORT HID_KEYBOARD = 6;
 
+// WindowRect is used to catch mouse in window
 RECT WindowRect;
-
-std::wstring MouseSensitivityPrint;
 
 // POINT structs for storing mouse coordinates
 POINT MousePos;
@@ -37,49 +35,17 @@ POINT OldMousePos;
 // Functions
 //
 
-void InitRawInputDevice(HWND hWnd, USHORT Device)
+void RegisterRawInputDevice(HWND hWnd, USHORT Device)
 {
 	RAWINPUTDEVICE RawInputDevice;
 
 	// Define RAWINPUTDEVICE
 	RawInputDevice.usUsagePage	= 1;
 	RawInputDevice.usUsage		= Device;
-	RawInputDevice.dwFlags		= RIDEV_DEVNOTIFY | RIDEV_INPUTSINK;
+	RawInputDevice.dwFlags		= RIDEV_DEVNOTIFY;
 	RawInputDevice.hwndTarget	= hWnd;
 
 	RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RawInputDevice));
-
-	if (Device == HID_MOUSE)
-	{
-		// Get focus
-		SetCapture(hWnd);
-
-		// Hide mouse cursor
-		ShowCursor(FALSE);
-
-		// Get & set window boundaries (used for ClipCursor)
-		GetClientRect(hWnd, &WindowRect);
-
-		POINT UpperLeft;
-		UpperLeft.x = WindowRect.left;
-		UpperLeft.y = WindowRect.top;
-
-		POINT LowerRight;
-		LowerRight.x = WindowRect.right;
-		LowerRight.y = WindowRect.bottom;
-
-		MapWindowPoints(hWnd, nullptr, &UpperLeft, 1);
-		MapWindowPoints(hWnd, nullptr, &LowerRight, 1);
-
-		WindowRect.left = UpperLeft.x;
-		WindowRect.top = UpperLeft.y;
-
-		WindowRect.right = LowerRight.x;
-		WindowRect.bottom = LowerRight.y;
-
-		// Initial conversion of MouseSensitivity to char (for HUD display)
-		MouseSensitivityPrint = std::to_wstring(MouseSensitivity);
-	}
 }
 
 void UnregisterRawInputDevice(USHORT Device)
@@ -94,14 +60,34 @@ void UnregisterRawInputDevice(USHORT Device)
 	RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RAWINPUTDEVICE));
 }
 
-void IncreaseMouseSensitivity()
+void CatchMouse(HWND hWnd)
 {
-	MouseSensitivity += 0.01f;
-	MouseSensitivityPrint = std::to_wstring(MouseSensitivity);
-}
+	// Get focus
+	SetCapture(hWnd);
 
-void DecreaseMouseSensitivity()
-{
-	MouseSensitivity -= 0.01f;
-	MouseSensitivityPrint = std::to_wstring(MouseSensitivity);
+	// Hide mouse cursor
+	ShowCursor(FALSE);
+
+	// Get & set window boundaries (used for ClipCursor)
+	GetClientRect(hWnd, &WindowRect);
+
+	POINT UpperLeft;
+	UpperLeft.x = WindowRect.left;
+	UpperLeft.y = WindowRect.top;
+
+	POINT LowerRight;
+	LowerRight.x = WindowRect.right;
+	LowerRight.y = WindowRect.bottom;
+
+	MapWindowPoints(hWnd, nullptr, &UpperLeft, 1);
+	MapWindowPoints(hWnd, nullptr, &LowerRight, 1);
+
+	WindowRect.left = UpperLeft.x;
+	WindowRect.top = UpperLeft.y;
+
+	WindowRect.right = LowerRight.x;
+	WindowRect.bottom = LowerRight.y;
+
+	// "catch" mousepointer in window
+	ClipCursor(&WindowRect);
 }

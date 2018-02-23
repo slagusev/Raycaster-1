@@ -167,8 +167,10 @@ int_fast32_t WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR sz
 	HDC hdcMem = CreateCompatibleDC(hdc);
 
 	// Init device for raw input (mouse handling and keyboard)
-	InitRawInputDevice(hWnd, HID_MOUSE);
-	InitRawInputDevice(hWnd, HID_KEYBOARD);
+	RegisterRawInputDevice(hWnd, HID_MOUSE);
+	RegisterRawInputDevice(hWnd, HID_KEYBOARD);
+
+	CatchMouse(hWnd);
 
 	// crosshair settings
 	CrosshairPosX = WindowWidthMid - (CrosshairIMG.GetWidth() / 2);
@@ -317,84 +319,72 @@ LRESULT CALLBACK WndProc(HWND hWnd, uint_fast32_t message, WPARAM wParam, LPARAM
 {
 	switch (message)
 	{
-		case WM_PAINT:
-			return(0);
-
-		case WM_CREATE:
-			return(0);
-
 		case WM_INPUT:
+		{
+			uint_fast32_t dwSize;
+			
+			// determine dwSize (should be 48 for 64bit systems and 40 for 32bit systems)
+			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+
+			LPBYTE lpb = new BYTE[dwSize];
+
+			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+			RAWINPUT* RawDev = (RAWINPUT*)lpb;
+
+			if (RawDev->header.dwType == RIM_TYPEMOUSE)
 			{
-				uint_fast32_t dwSize;
+				// Get mouse position
+				MousePos.x = RawDev->data.mouse.lLastX;
+				MousePos.y = RawDev->data.mouse.lLastY;
 
-				// determine dwSize (should be 48 for 64bit systems and 40 for 32bit systems)
-				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
-
-				LPBYTE lpb = new BYTE[dwSize];
-
-				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-
-				RAWINPUT* RawDev = (RAWINPUT*)lpb;
-
-				if (RawDev->header.dwType == RIM_TYPEMOUSE)
+				// Get state of mouse buttons
+				if (RawDev->data.mouse.ulButtons & RI_MOUSE_LEFT_BUTTON_DOWN)
 				{
-					// Get mouse position
-					MousePos.x = RawDev->data.mouse.lLastX;
-					MousePos.y = RawDev->data.mouse.lLastY;
-
-					// Get state of mouse bot
-					if (RawDev->data.mouse.ulButtons & RI_MOUSE_LEFT_BUTTON_DOWN)
-					{
-						FireWeaponSingleShot();
-					}
+					FireWeaponSingleShot();
 				}
-
-				if (RawDev->header.dwType == RIM_TYPEKEYBOARD)
-				{
-					if (RawDev->data.keyboard.Message == WM_KEYDOWN || RawDev->data.keyboard.Message == WM_SYSKEYDOWN)
-					{
-						// Enable/disable HUD
-						if (RawDev->data.keyboard.VKey == HUDKey)
-						{
-							HUDEnabled = !HUDEnabled;
-						}
-
-						// Toggle Minimap
-						if (RawDev->data.keyboard.VKey == MiniMapKey)
-						{
-							MinimapEnabled = !MinimapEnabled;
-						}
-
-						// Increase mouse sensitivity "+"
-						if ((RawDev->data.keyboard.VKey == VK_OEM_PLUS) || (RawDev->data.keyboard.VKey == VK_ADD))
-						{
-							IncreaseMouseSensitivity();
-						}
-
-						// Decrease mouse sensitivity "-"
-						if ((RawDev->data.keyboard.VKey == VK_OEM_MINUS) || (RawDev->data.keyboard.VKey == VK_SUBTRACT))
-						{
-							DecreaseMouseSensitivity();
-						}
-					}
-				}
-
-				delete[] lpb;
-				break;
 			}
+
+			if (RawDev->header.dwType == RIM_TYPEKEYBOARD)
+			{
+				if (RawDev->data.keyboard.Message == WM_KEYDOWN || RawDev->data.keyboard.Message == WM_SYSKEYDOWN)
+				{
+					// Enable/disable HUD
+					if (RawDev->data.keyboard.VKey == HUDKey)
+					{
+						HUDEnabled = !HUDEnabled;
+					}
+
+					// Toggle Minimap
+					if (RawDev->data.keyboard.VKey == MiniMapKey)
+					{
+						MinimapEnabled = !MinimapEnabled;
+					}
+
+					// Increase mouse sensitivity "+"
+					if ((RawDev->data.keyboard.VKey == VK_OEM_PLUS) || (RawDev->data.keyboard.VKey == VK_ADD))
+					{
+						MouseSensitivity += 0.01f;
+					}
+
+					// Decrease mouse sensitivity "-"
+					if ((RawDev->data.keyboard.VKey == VK_OEM_MINUS) || (RawDev->data.keyboard.VKey == VK_SUBTRACT))
+					{
+						MouseSensitivity -= 0.01f;
+					}
+				}
+			}
+
+			delete[] lpb;
+		}
 		
 		case MM_MCINOTIFY:
 			switch (wParam)
 			{
-				// "rewind" footsteps audio if played completely
+				// "rewind" player footsteps audio if played completely
 				case MCI_NOTIFY_SUCCESSFUL:
 					mciSendString("seek PlayerFootSteps to start", NULL, 0, NULL);
-					break;
 			}
-			
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			break;
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
@@ -739,9 +729,6 @@ void FPSCounter()
 		FPSFrames = 0;
 	}
 	
-	// Convert FPS variable to string
-	FPSPrint = std::to_wstring(FPS);
-
 	++FPSFrames;
 }
 
@@ -769,12 +756,12 @@ void DisplayHUD()
 	DiffYPos = 0;
 
 	// Display FPS counter
-	std::wstring FPSText = L"fps : " + FPSPrint;
-	Buffer.DrawString(FPSText.c_str(), -1, &HUDFont, Gdiplus::PointF(10, HUDMenuPosY), &HUDBrush);
+	std::wstring Output = L"fps : " + std::to_wstring(FPS);
+	Buffer.DrawString(Output.c_str(), -1, &HUDFont, Gdiplus::PointF(10, HUDMenuPosY), &HUDBrush);
 
 	// Display mouse sensitivity
-	std::wstring MouseSensitivityText = L"mouse sensitivity : " + MouseSensitivityPrint;
-	Buffer.DrawString(MouseSensitivityText.c_str(), -1, &HUDFont, Gdiplus::PointF(10, HUDMenuPosY + (DiffYPos += 15)), &HUDBrush);
+	Output = L"mouse sensitivity : " + std::to_wstring(MouseSensitivity);
+	Buffer.DrawString(Output.c_str(), -1, &HUDFont, Gdiplus::PointF(10, HUDMenuPosY + (DiffYPos += 15)), &HUDBrush);
 }
 
 void DisplayMinimap()
@@ -877,7 +864,9 @@ void ControlPlayerMovement(HWND hWnd)
 		float oldPlaneX = PlaneX;
 		PlaneX = PlaneX * TmpCos - PlaneY * TmpSin;
 		PlaneY = oldPlaneX * TmpSin + PlaneY * TmpCos;
+		
 		ClipCursor(&WindowRect);
+		
 		OldMousePos.x = MousePos.x;
 	}
 
