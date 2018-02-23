@@ -78,7 +78,7 @@ InitGameConfig::InitGameConfig()
 	
 	WindowViewPortHeight = GetPrivateProfileInt("WINDOW", "WindowViewPortHeight", 768, IniFile);
 
-	TextureSize = GetPrivateProfileInt("TEXTURES", "TextureSize ", 1024, IniFile);
+	TextureSize = GetPrivateProfileInt("TEXTURES", "TextureSize ", 512, IniFile);
 
 	GetPrivateProfileString("MOUSE", "MouseSensitivity ", "1.0", TempVal, 100, IniFile);
 	MouseSensitivity = static_cast<float>(atof(TempVal));

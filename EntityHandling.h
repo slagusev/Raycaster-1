@@ -69,7 +69,7 @@ void InitEntityConfig(uint_fast32_t LevelNumber)
 	
 	NumberOfUsedEntityTextures = GetPrivateProfileInt("GENERAL", "NumberOfUsedEntityTextures", 8, IniFile.c_str());
 	
-	EntitySize = GetPrivateProfileInt("GENERAL", "EntitySize", 1024, IniFile.c_str());
+	EntitySize = GetPrivateProfileInt("GENERAL", "EntitySize", 512, IniFile.c_str());
 	
 	EntitySizeDivU = GetPrivateProfileInt("GENERAL", "EntitySizeDivU", 1, IniFile.c_str());
 	
